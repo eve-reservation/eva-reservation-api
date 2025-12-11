@@ -4,7 +4,6 @@ import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cach
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
 	getAll(req: Request, res: Response, next: NextFunction): Promise<void>;
-	getAvailable(req: Request, res: Response, next: NextFunction): Promise<void>;
 	create(req: Request, res: Response, next: NextFunction): Promise<void>;
 	update(req: Request, res: Response, next: NextFunction): Promise<void>;
 	remove(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -12,18 +11,15 @@ interface IController {
 
 export const router = (route: Router, controller: IController): Router => {
 	const routes = Router();
-	const path = "/facility";
-
-	// Get available facilities for a time window (overlap check against reservations)
-	routes.get("/available", controller.getAvailable);
+	const path = "/reservation";
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/reservation/{id}:
 	 *   get:
-	 *     summary: Get facility by ID
-	 *     description: Retrieve a specific facility by its unique identifier with optional field selection
-	 *     tags: [Facility]
+	 *     summary: Get reservation by ID
+	 *     description: Retrieve a specific reservation by its unique identifier with optional field selection
+	 *     tags: [Reservation]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -33,7 +29,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: Reservation ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *       - in: query
 	 *         name: fields
@@ -44,7 +40,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         example: "id,name,description,type"
 	 *     responses:
 	 *       200:
-	 *         description: Facility retrieved successfully
+	 *         description: Reservation retrieved successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -55,8 +51,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         reservation:
+	 *                           $ref: '#/components/schemas/Reservation'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -66,14 +62,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache individual facility with predictable key for invalidation
+	// Cache individual reservation with predictable key for invalidation
 	routes.get(
 		"/:id",
 		cache({
 			ttl: 90,
 			keyGenerator: (req: Request) => {
 				const fields = (req.query as any).fields || "full";
-				return `cache:facility:byId:${req.params.id}:${fields}`;
+				return `cache:reservation:byId:${req.params.id}:${fields}`;
 			},
 		}),
 		controller.getById,
@@ -81,11 +77,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility:
+	 * /api/reservation:
 	 *   get:
-	 *     summary: Get all facilitys
-	 *     description: Retrieve facilitys with advanced filtering, pagination, sorting, field selection, and optional grouping
-	 *     tags: [Facility]
+	 *     summary: Get all reservations
+	 *     description: Retrieve reservations with advanced filtering, pagination, sorting, field selection, and optional grouping
+	 *     tags: [Reservation]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -158,7 +154,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           enum: ["true"]
-	 *         description: Include facility documents in response
+	 *         description: Include reservation documents in response
 	 *       - in: query
 	 *         name: pagination
 	 *         required: false
@@ -186,17 +182,17 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilitys:
+	 *                         reservations:
 	 *                           type: array
 	 *                           items:
-	 *                             $ref: '#/components/schemas/Facility'
+	 *                             $ref: '#/components/schemas/Reservation'
 	 *                           description: Present when document="true" and no groupBy
 	 *                         groups:
 	 *                           type: object
 	 *                           additionalProperties:
 	 *                             type: array
 	 *                             items:
-	 *                               $ref: '#/components/schemas/Facility'
+	 *                               $ref: '#/components/schemas/Reservation'
 	 *                           description: Present when groupBy is used and document="true"
 	 *                         count:
 	 *                           type: integer
@@ -211,14 +207,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache facility list with predictable key for invalidation
+	// Cache reservation list with predictable key for invalidation
 	routes.get(
 		"/",
 		cache({
 			ttl: 60,
 			keyGenerator: (req: Request) => {
 				const queryKey = Buffer.from(JSON.stringify(req.query || {})).toString("base64");
-				return `cache:facility:list:${queryKey}`;
+				return `cache:reservation:list:${queryKey}`;
 			},
 		}),
 		controller.getAll,
@@ -226,11 +222,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility:
+	 * /api/reservation:
 	 *   post:
-	 *     summary: Create new facility
-	 *     description: Create a new facility with the provided data
-	 *     tags: [Facility]
+	 *     summary: Create new reservation
+	 *     description: Create a new reservation with the provided data
+	 *     tags: [Reservation]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     requestBody:
@@ -245,16 +241,16 @@ export const router = (route: Router, controller: IController): Router => {
 	 *               name:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: Facility name
-	 *                 example: "Email Welcome Facility"
+	 *                 description: Reservation name
+	 *                 example: "Email Welcome Reservation"
 	 *               description:
 	 *                 type: string
-	 *                 description: Facility description
-	 *                 example: "Welcome email facility for new users"
+	 *                 description: Reservation description
+	 *                 example: "Welcome email reservation for new users"
 	 *               type:
 	 *                 type: string
 	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: Facility type for categorization
+	 *                 description: Reservation type for categorization
 	 *                 example: "email"
 	 *               isDeleted:
 	 *                 type: boolean
@@ -292,7 +288,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                 type: boolean
 	 *     responses:
 	 *       201:
-	 *         description: Facility created successfully
+	 *         description: Reservation created successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -303,8 +299,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         reservation:
+	 *                           $ref: '#/components/schemas/Reservation'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -316,11 +312,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/reservation/{id}:
 	 *   patch:
-	 *     summary: Update facility
-	 *     description: Update facility data by ID (partial update)
-	 *     tags: [Facility]
+	 *     summary: Update reservation
+	 *     description: Update reservation data by ID (partial update)
+	 *     tags: [Reservation]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -330,7 +326,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: Reservation ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     requestBody:
 	 *       required: true
@@ -343,16 +339,16 @@ export const router = (route: Router, controller: IController): Router => {
 	 *               name:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: Facility name
-	 *                 example: "Updated Email Facility"
+	 *                 description: Reservation name
+	 *                 example: "Updated Email Reservation"
 	 *               description:
 	 *                 type: string
-	 *                 description: Facility description
-	 *                 example: "Updated description for the facility"
+	 *                 description: Reservation description
+	 *                 example: "Updated description for the reservation"
 	 *               type:
 	 *                 type: string
 	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: Facility type for categorization
+	 *                 description: Reservation type for categorization
 	 *                 example: "email"
 	 *               isDeleted:
 	 *                 type: boolean
@@ -360,7 +356,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                 example: false
 	 *     responses:
 	 *       200:
-	 *         description: Facility updated successfully
+	 *         description: Reservation updated successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -371,8 +367,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         reservation:
+	 *                           $ref: '#/components/schemas/Reservation'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -386,11 +382,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/reservation/{id}:
 	 *   delete:
-	 *     summary: Delete facility
-	 *     description: Permanently delete a facility by ID
-	 *     tags: [Facility]
+	 *     summary: Delete reservation
+	 *     description: Permanently delete a reservation by ID
+	 *     tags: [Reservation]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -400,11 +396,11 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: Reservation ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     responses:
 	 *       200:
-	 *         description: Facility deleted successfully
+	 *         description: Reservation deleted successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:

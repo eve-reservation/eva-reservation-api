@@ -1,9 +1,49 @@
+enum FacilityStatus {
+  AVAILABLE         // Ready to be reserved/used
+  OCCUPIED          // Currently in use
+  RESERVED          // Reserved but not yet occupied
+  MAINTENANCE       // Under maintenance/repair
+  CLEANING          // Being cleaned/prepared
+  OUT_OF_SERVICE    // Temporarily unavailable
+  BLOCKED           // Manually blocked (not available for booking)
+}
+
 model Facility {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String?
-  type        String?
-  isDeleted   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Reference to facility type template
+  facilityType    FacilityType    @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade)
+  facilityTypeId  String          @db.ObjectId
+  
+  // Unique identifier within organization
+  // Examples: "Room 101", "Suite 205", "Conference Room A", "Tennis Court 1", "Parking B12"
+  identifier      String
+  displayName     String?         // Optional friendly name
+  
+  // Organization relationship
+  organizationId  String
+
+  
+  // Location details (contains all hierarchical information: building, floor, wing, zone, etc.)
+  location        Location?       @relation(fields: [locationId], references: [id])
+  locationId      String?         @db.ObjectId
+  
+  // Instance-specific attributes (overrides facilityType)
+  attributes      Json?
+  
+  // Status (replaces isActive and isUnderMaintenance)
+  status          FacilityStatus  @default(AVAILABLE)
+  
+  // Relationships
+  reservations    Reservation[]
+  // availability    AvailabilityRule[]
+  // maintenanceLog  MaintenanceLog[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@unique([organizationId, identifier])
+  @@index([facilityTypeId])
+  @@index([locationId])
+  @@index([status])
 }

@@ -7,10 +7,8 @@ import swaggerUi from "swagger-ui-express";
 import { PrismaClient } from "./generated/prisma";
 import { config } from "./config/config";
 import openApiSpecs from "./docs/openApiSpecs";
-import verifyToken from "./middleware/verifyToken";
 import { connectAllDatabases, disconnectAllDatabases } from "./config/database";
 import { securityMiddleware, devSecurityMiddleware } from "./middleware/security";
-import { authSecurityMiddleware } from "./middleware/security";
 
 process.setMaxListeners(50);
 
@@ -41,6 +39,10 @@ if (process.env.NODE_ENV === "production") {
 
 const template = require("./app/template")(prisma);
 const facility = require("./app/facility")(prisma);
+const facilitytype = require("./app/facilitytype")(prisma);
+const ratetype = require("./app/ratetype")(prisma);
+const location = require("./app/location")(prisma);
+const reservation = require("./app/reservation")(prisma);
 const docs = require("./app/docs/docs");
 
 app.use(express.json());
@@ -116,22 +118,14 @@ if (process.env.NODE_ENV !== "production") {
 	app.use(`${config.baseApiPath}/swagger`, swaggerUi.serve, swaggerUi.setup(openApiSpecs()));
 }
 
-// Apply authentication-specific security middleware
-app.use(`${config.baseApiPath}/auth`, authSecurityMiddleware);
-
-// Apply middleware for protected routes, excluding /docs and /auth
-app.use(config.baseApiPath, (req: Request, res: Response, next: NextFunction) => {
-	if (req.path.startsWith("/docs") || req.path.startsWith("/auth")) {
-		// Skip middleware for the docs and auth routes
-		return next();
-	}
-	verifyToken(req, res, () => {
-		next();
-	});
-});
+// Authentication middleware removed: all routes are public as requested
 
 app.use(config.baseApiPath, template);
 app.use(config.baseApiPath, facility);
+app.use(config.baseApiPath, facilitytype);
+app.use(config.baseApiPath, ratetype);
+app.use(config.baseApiPath, location);
+app.use(config.baseApiPath, reservation);
 app.use(config.baseApiPath, docs(prisma, app));
 
 // Store app instance globally for docs generation after all routes are registered

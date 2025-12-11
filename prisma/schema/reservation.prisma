@@ -1,0 +1,86 @@
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+type reservationPeriod {
+  startDateTime  DateTime
+  endDateTime    DateTime
+  numberOfDays   Int
+  numberOfHours  Float?
+  originalHours  Float?  
+  extendedHours  Float? 
+  checkedInAt    DateTime?
+  checkedOutAt   DateTime?
+}
+
+type PricingBase {
+  planBasePrice Float 
+  daysBooked    Int
+  planTotal     Float 
+}
+
+type Charges {
+  driverFee    Float @default(0)
+  serviceFee   Float @default(0)
+  extensionFee Float @default(0)
+  addonFee     Float @default(0)
+}
+
+
+type Taxes {
+  tax           Float
+  taxPercentage Float @default(12) 
+}
+
+type Discounts {
+  couponCode         String?
+  discount           Float   @default(0)
+  discountPercentage Float?
+}
+
+type Totals {
+  subtotal    Float
+  totalAmount Float
+}
+
+model Reservation {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  
+  facility        Facility          @relation(fields: [facilityId], references: [id])
+  facilityId      String            @db.ObjectId
+  
+  status          ReservationStatus @default(PENDING)
+
+  numberOCustomer  Int               @default(1)
+  customers       String[]          @default([])
+  
+  purpose         String?          
+  eventName       String?
+  
+  specialRequests String?
+  internalNotes   String?
+  
+  bookingSource   String?
+  confirmationCode String           @unique @default(cuid())
+  
+  checkedInBy     String?
+  checkedOutBy    String?
+  
+  addOns          Json?
+  
+  bookingPeriod   reservationPeriod?
+  pricingBase     PricingBase?
+  charges         Charges?
+  taxes           Taxes?
+  discounts       Discounts?
+  totals          Totals?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+}
