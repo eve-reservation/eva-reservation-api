@@ -91,6 +91,28 @@ export const AmenitySubtypeSchema = z.enum([
 ]);
 
 // ============================================================================
+// FACILITY IMAGE TYPE ENUM & SCHEMA
+// ============================================================================
+
+export const FacilityImageTypeSchema = z.enum([
+	"COVER",
+	"FEATURED",
+	"GALLERY",
+	"THUMBNAIL",
+	"FLOOR_PLAN",
+	"EXTERIOR",
+	"INTERIOR",
+	"AMENITY",
+	"OTHER",
+]);
+
+export const FacilityImageSchema = z.object({
+	name: z.string().optional(),
+	url: z.string().url("Invalid image URL").optional(),
+	type: FacilityImageTypeSchema.optional(),
+});
+
+// ============================================================================
 // FEATURE ENUMS
 // ============================================================================
 
@@ -815,15 +837,12 @@ const preprocessFacilityTypeData = z.preprocess(
 			}
 		}
 
-		// Handle array fields
-		if (processed.imageUrl && typeof processed.imageUrl === "string") {
+		// Handle images array field (from form data)
+		if (processed.images && typeof processed.images === "string") {
 			try {
-				processed.imageUrl = JSON.parse(processed.imageUrl);
+				processed.images = JSON.parse(processed.images);
 			} catch {
-				processed.imageUrl = processed.imageUrl
-					.split(",")
-					.map((item: string) => item.trim())
-					.filter((item: string) => item);
+				processed.images = [];
 			}
 		}
 
@@ -846,10 +865,8 @@ const preprocessFacilityTypeData = z.preprocess(
 			organizationId: ObjectIdSchema,
 			metadata: z.union([z.string(), z.record(z.any())]).optional(),
 			rateTypeId: ObjectIdSchema.optional(),
-			imageUrl: z.array(z.string().url("Invalid image URL")).optional().default([]),
+			images: z.array(FacilityImageSchema).optional().default([]),
 			path: z.string().optional(),
-			// For handling image removal during updates
-			removeImageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 		})
 		.superRefine((data, ctx) => {
 			// Skip validation if metadata is missing
@@ -1025,18 +1042,12 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 			}
 		}
 
-		// Handle array fields
-		const arrayFields = ["imageUrl", "removeImageUrls"];
-		for (const field of arrayFields) {
-			if (processed[field] && typeof processed[field] === "string") {
-				try {
-					processed[field] = JSON.parse(processed[field]);
-				} catch {
-					processed[field] = processed[field]
-						.split(",")
-						.map((item: string) => item.trim())
-						.filter((item: string) => item);
-				}
+		// Handle images array field (from form data)
+		if (processed.images && typeof processed.images === "string") {
+			try {
+				processed.images = JSON.parse(processed.images);
+			} catch {
+				processed.images = [];
 			}
 		}
 
@@ -1059,10 +1070,8 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 			metadata: z.union([z.string(), z.record(z.any())]).optional(),
 			organizationId: ObjectIdSchema.optional(),
 			rateTypeId: ObjectIdSchema.optional(),
-			imageUrl: z.array(z.string().url("Invalid image URL")).optional(),
+			images: z.array(FacilityImageSchema).optional(),
 			path: z.string().optional(),
-			// For handling image removal during updates
-			removeImageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 		})
 		.partial(),
 );
@@ -1079,7 +1088,7 @@ export const FacilityTypeResponseSchema = z.object({
 	rateTypeId: z.string().optional(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
-	imageUrl: z.array(z.string()),
+	images: z.array(FacilityImageSchema),
 	path: z.string().optional(),
 });
 
@@ -1105,6 +1114,8 @@ export type AmenitySubtype = z.infer<typeof AmenitySubtypeSchema>;
 export type BedType = z.infer<typeof BedTypeSchema>;
 export type RoomFeature = z.infer<typeof RoomFeatureSchema>;
 export type Amenity = z.infer<typeof AmenitySchema>;
+export type FacilityImageType = z.infer<typeof FacilityImageTypeSchema>;
+export type FacilityImage = z.infer<typeof FacilityImageSchema>;
 
 // Metadata types
 export type GuestRoomMetadata = z.infer<typeof GuestRoomMetadataSchema>;

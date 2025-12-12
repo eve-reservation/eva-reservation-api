@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cache";
+import { uploadFacilityTypeImages } from "../../middleware/upload";
 
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -308,7 +309,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	routes.post("/", controller.create);
+	routes.post("/", uploadFacilityTypeImages, controller.create);
 
 	/**
 	 * @openapi
@@ -378,7 +379,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	routes.patch("/:id", controller.update);
+	routes.patch("/:id", uploadFacilityTypeImages, controller.update);
 
 	/**
 	 * @openapi

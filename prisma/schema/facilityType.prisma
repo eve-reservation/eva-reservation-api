@@ -81,6 +81,24 @@ enum AmenitySubtype {
   OTHER
 }
 
+enum FacilityImageType {
+  COVER             // Main cover/hero image
+  FEATURED          // Featured images
+  GALLERY           // Gallery images
+  THUMBNAIL         // Thumbnail/preview image
+  FLOOR_PLAN        // Floor plan/layout image
+  EXTERIOR          // Exterior view
+  INTERIOR          // Interior view
+  AMENITY           // Amenity-specific image
+  OTHER
+}
+
+type FacilityImage {
+  name String?
+  url  String?
+  type FacilityImageType?
+}
+
 model FacilityType {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   name           String
@@ -107,7 +125,7 @@ model FacilityType {
   rateType       RateType? @relation(fields: [rateTypeId], references: [id])
 
   // Images
-  imageUrl       String[]  @default([])
+  images         FacilityImage[]
 
   // Path for hierarchical organization
   path           String?

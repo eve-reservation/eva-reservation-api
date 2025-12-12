@@ -44,7 +44,18 @@ export const uploadFacilityImages = upload.array("images", 5);
 // Upload configuration for room type images (multiple images)
 export const uploadRoomTypeImages = upload.array("images", 10); // Maximum 10 images for room types
 
-export const uploadFacilityTypeImages = upload.array("images", 10); // Maximum 10 images for facility types
+// Field-based upload configuration for facility type images (by image type)
+export const uploadFacilityTypeImages = upload.fields([
+	{ name: "coverImages", maxCount: 3 },
+	{ name: "featuredImages", maxCount: 5 },
+	{ name: "galleryImages", maxCount: 10 },
+	{ name: "thumbnailImages", maxCount: 3 },
+	{ name: "floorPlanImages", maxCount: 5 },
+	{ name: "exteriorImages", maxCount: 5 },
+	{ name: "interiorImages", maxCount: 5 },
+	{ name: "amenityImages", maxCount: 5 },
+	{ name: "images", maxCount: 10 }, // Fallback for generic images (will be tagged as GALLERY by default)
+]);
 
 // Upload configuration for CSV files
 export const uploadCSV = multer({
