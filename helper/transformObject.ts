@@ -19,6 +19,16 @@ export const convertStringBooleans = (obj: any): any => {
 	return obj;
 };
 
+/**
+ * Check if the content type is form-urlencoded or multipart/form-data
+ */
+export const isFormOrMultipartContentType = (contentType: string): boolean => {
+	return (
+		contentType.includes("application/x-www-form-urlencoded") ||
+		contentType.includes("multipart/form-data")
+	);
+};
+
 export const transformFormDataToObject = (formData: any): any => {
 	if (!formData || typeof formData !== "object") {
 		return {};

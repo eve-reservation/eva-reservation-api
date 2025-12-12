@@ -72,6 +72,16 @@ function getFieldMeta(modelName: string, field: string): DMMF.Field | undefined 
  * Parse value based on field type
  */
 function parseValue(field: DMMF.Field, val: string): any {
+	// Handle null values
+	if (val === "null" || val === "NULL" || val === "Null") {
+		return null;
+	}
+
+	// Handle undefined values
+	if (val === "undefined") {
+		return undefined;
+	}
+
 	switch (field.type) {
 		case "String":
 			return val;
@@ -105,7 +115,10 @@ function buildCondition(modelName: string, path: string[], value: string): any {
 
 	// Get metadata for the current (first) field
 	const fieldMeta = getFieldMeta(modelName, path[0]);
-	if (!fieldMeta) return {};
+	if (!fieldMeta) {
+		console.warn(`⚠️  Field "${path[0]}" not found in model "${modelName}"`);
+		return {};
+	}
 
 	// Terminal field (scalar or enum)
 	if (path.length === 1) {
@@ -113,6 +126,10 @@ function buildCondition(modelName: string, path: string[], value: string): any {
 			const parsedValue = parseValue(fieldMeta, value);
 			if (fieldMeta.isList) {
 				return { [path[0]]: { has: parsedValue } };
+			}
+			// Special handling for null values - use explicit equals for better MongoDB compatibility
+			if (parsedValue === null) {
+				return { [path[0]]: null };
 			}
 			return { [path[0]]: parsedValue };
 		}

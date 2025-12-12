@@ -15,6 +15,7 @@ import { buildErrorResponse, formatZodErrors } from "../../helper/error-handler"
 import { CreateFacilitySchema, UpdateFacilitySchema } from "../../zod/facility.zod";
 import { logActivity } from "../../utils/activityLogger";
 import { logAudit } from "../../utils/auditLogger";
+import { DEFAULT_BLOCKING_STATUSES } from "../../helper/reservation-availability";
 import { config } from "../../config/constant";
 import { redisClient } from "../../config/redis";
 import { invalidateCache } from "../../middleware/cache";
@@ -55,7 +56,7 @@ export const controller = (prisma: PrismaClient) => {
 			logActivity(req, {
 				userId: (req as any).user?.id || "unknown",
 				action: config.ACTIVITY_LOG.FACILITY.ACTIONS.CREATE_FACILITY,
-				description: `${config.ACTIVITY_LOG.FACILITY.DESCRIPTIONS.FACILITY_CREATED}: ${facility.name || facility.id}`,
+				description: `${config.ACTIVITY_LOG.FACILITY.DESCRIPTIONS.FACILITY_CREATED}: ${facility.displayName || facility.identifier || facility.id}`,
 				page: {
 					url: req.originalUrl,
 					title: config.ACTIVITY_LOG.FACILITY.PAGES.FACILITY_CREATION,
@@ -72,12 +73,12 @@ export const controller = (prisma: PrismaClient) => {
 				changesBefore: null,
 				changesAfter: {
 					id: facility.id,
-					name: facility.name,
-					description: facility.description,
+					identifier: facility.identifier,
+					displayName: facility.displayName,
 					createdAt: facility.createdAt,
 					updatedAt: facility.updatedAt,
 				},
-				description: `${config.AUDIT_LOG.FACILITY.DESCRIPTIONS.FACILITY_CREATED}: ${facility.name || facility.id}`,
+				description: `${config.AUDIT_LOG.FACILITY.DESCRIPTIONS.FACILITY_CREATED}: ${facility.displayName || facility.identifier || facility.id}`,
 			});
 
 			try {
@@ -96,8 +97,26 @@ export const controller = (prisma: PrismaClient) => {
 				201,
 			);
 			res.status(201).json(successResponse);
-		} catch (error) {
+		} catch (error: any) {
 			facilityLogger.error(`${config.ERROR.FACILITY.CREATE_FAILED}: ${error}`);
+
+			// Handle unique constraint violation
+			if (error.code === "P2002") {
+				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const errorResponse = buildErrorResponse(
+					`A facility with this ${fields.join(" and ")} already exists in this organization`,
+					409,
+					[
+						{
+							field: fields.join(", "),
+							message: `Duplicate facility: A facility with identifier "${validation.data.identifier}" already exists for this organization`,
+						},
+					],
+				);
+				res.status(409).json(errorResponse);
+				return;
+			}
+
 			const errorResponse = buildErrorResponse(
 				config.ERROR.COMMON.INTERNAL_SERVER_ERROR,
 				500,
@@ -129,17 +148,15 @@ export const controller = (prisma: PrismaClient) => {
 		} = validationResult.validatedParams!;
 
 		facilityLogger.info(
-			`Getting facilitys, page: ${page}, limit: ${limit}, query: ${query}, order: ${order}, groupBy: ${groupBy}`,
+			`Getting facilities, page: ${page}, limit: ${limit}, query: ${query}, order: ${order}, groupBy: ${groupBy}`,
 		);
 
 		try {
 			// Base where clause
-			const whereClause: Prisma.FacilityWhereInput = {
-				isDeleted: false,
-			};
+			const whereClause: Prisma.FacilityWhereInput = {};
 
-			// search fields sample ("name", "description", "type")
-			const searchFields = ["name", "description", "type"];
+			// Search fields (identifier, displayName)
+			const searchFields = ["identifier", "displayName"];
 			if (query) {
 				const searchConditions = buildSearchConditions("Facility", query, searchFields);
 				if (searchConditions.length > 0) {
@@ -153,19 +170,27 @@ export const controller = (prisma: PrismaClient) => {
 					whereClause.AND = filterConditions;
 				}
 			}
+
 			const findManyQuery = buildFindManyQuery(whereClause, skip, limit, order, sort, fields);
 
-			const [facilitys, total] = await Promise.all([
+			// Include related location and facilityType
+			findManyQuery.include = {
+				location: true,
+				facilityType: true,
+			};
+
+			const [facilities, total] = await Promise.all([
 				document ? prisma.facility.findMany(findManyQuery) : [],
 				count ? prisma.facility.count({ where: whereClause }) : 0,
 			]);
 
-			facilityLogger.info(`Retrieved ${facilitys.length} facilitys`);
+			facilityLogger.info(`Retrieved ${facilities.length} facilities`);
+
 			const processedData =
-				groupBy && document ? groupDataByField(facilitys, groupBy as string) : facilitys;
+				groupBy && document ? groupDataByField(facilities, groupBy as string) : facilities;
 
 			const responseData: Record<string, any> = {
-				...(document && { facilitys: processedData }),
+				...(document && { facilities: processedData }),
 				...(count && { count: total }),
 				...(pagination && { pagination: buildPagination(total, page, limit) }),
 				...(groupBy && { groupedBy: groupBy }),
@@ -226,6 +251,12 @@ export const controller = (prisma: PrismaClient) => {
 
 				query.select = getNestedFields(fields);
 
+				// Include related location and facilityType
+				query.include = {
+					location: true,
+					facilityType: true,
+				};
+
 				facility = await prisma.facility.findFirst(query);
 
 				if (facility && redisClient.isClientConnected()) {
@@ -262,6 +293,85 @@ export const controller = (prisma: PrismaClient) => {
 				500,
 			);
 			res.status(500).json(errorResponse);
+		}
+	};
+
+	const getAvailable = async (req: Request, res: Response, _next: NextFunction) => {
+		const { startDateTime, endDateTime } = req.query;
+		const limit = Math.min(parseInt((req.query.limit as string) || "50", 10), 200);
+		const skip = parseInt((req.query.skip as string) || "0", 10);
+
+		if (
+			!startDateTime ||
+			!endDateTime ||
+			typeof startDateTime !== "string" ||
+			typeof endDateTime !== "string"
+		) {
+			const errorResponse = buildErrorResponse(
+				"startDateTime and endDateTime query params are required",
+				400,
+			);
+			res.status(400).json(errorResponse);
+			return;
+		}
+
+		const start = new Date(startDateTime);
+		const end = new Date(endDateTime);
+
+		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+			const errorResponse = buildErrorResponse(
+				"Invalid date format for startDateTime or endDateTime",
+				400,
+			);
+			res.status(400).json(errorResponse);
+			return;
+		}
+
+		if (end <= start) {
+			const errorResponse = buildErrorResponse(
+				"endDateTime must be after startDateTime",
+				400,
+			);
+			res.status(400).json(errorResponse);
+			return;
+		}
+
+		try {
+			const facilities = await prisma.facility.findMany({
+				where: {
+					reservations: {
+						none: {
+							status: { in: DEFAULT_BLOCKING_STATUSES },
+							bookingPeriod: {
+								is: {
+									startDateTime: { lt: end },
+									endDateTime: { gt: start },
+								},
+							},
+						},
+					},
+				},
+				include: {
+					location: true,
+					facilityType: true,
+				},
+				take: limit,
+				skip,
+			});
+
+			const responseData = {
+				availableFacilities: facilities,
+				window: { startDateTime: start.toISOString(), endDateTime: end.toISOString() },
+			};
+
+			res.status(200).json(
+				buildSuccessResponse(config.SUCCESS.FACILITY.RETRIEVED_ALL, responseData, 200),
+			);
+		} catch (error) {
+			facilityLogger.error(`Failed to get available facilities: ${error}`);
+			res.status(500).json(
+				buildErrorResponse(config.ERROR.COMMON.INTERNAL_SERVER_ERROR, 500),
+			);
 		}
 	};
 
@@ -333,8 +443,26 @@ export const controller = (prisma: PrismaClient) => {
 				200,
 			);
 			res.status(200).json(successResponse);
-		} catch (error) {
+		} catch (error: any) {
 			facilityLogger.error(`${config.ERROR.FACILITY.ERROR_UPDATING}: ${error}`);
+
+			// Handle unique constraint violation
+			if (error.code === "P2002") {
+				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const errorResponse = buildErrorResponse(
+					`A facility with this ${fields.join(" and ")} already exists in this organization`,
+					409,
+					[
+						{
+							field: fields.join(", "),
+							message: `Duplicate facility: A facility with this identifier already exists for this organization`,
+						},
+					],
+				);
+				res.status(409).json(errorResponse);
+				return;
+			}
+
 			const errorResponse = buildErrorResponse(
 				config.ERROR.COMMON.INTERNAL_SERVER_ERROR,
 				500,
@@ -395,5 +523,5 @@ export const controller = (prisma: PrismaClient) => {
 		}
 	};
 
-	return { create, getAll, getById, update, remove };
+	return { create, getAll, getById, getAvailable, update, remove };
 };

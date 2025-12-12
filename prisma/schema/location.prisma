@@ -1,0 +1,123 @@
+enum LocationType {
+  BUILDING          // Main structures (hotels, towers, buildings)
+  FLOOR             // Individual floor levels
+  WING              // Building wings/sections spanning multiple floors
+  AREA              // Functional areas (lobby, corridor, atrium)
+  ZONE              // Functional zones (residential, commercial, restricted)
+  SECTION           // Organizational sections (Section A, Block 1)
+  BLOCK             // Building blocks
+  OUTDOOR           // Outdoor spaces (garden, terrace, plaza)
+  OTHER
+}
+
+enum BuildingType {
+  MAIN
+  ANNEX
+  TOWER
+  PAVILION
+  COTTAGE
+  VILLA
+  CLUBHOUSE
+  STANDALONE
+  OTHER
+}
+
+enum AreaType {
+  LOBBY
+  CORRIDOR
+  ATRIUM
+  COURTYARD
+  ROOFTOP
+  BASEMENT
+  MEZZANINE
+  TERRACE
+  GARDEN
+  PARKING_LEVEL
+  STORAGE
+  MECHANICAL
+  SERVICE
+  OTHER
+}
+
+enum ZoneType {
+  RESIDENTIAL
+  COMMERCIAL
+  RECREATIONAL
+  ADMINISTRATIVE
+  SERVICE
+  RESTRICTED
+  PUBLIC
+  PRIVATE
+  VIP
+  OTHER
+}
+
+// ============================================================================
+// LOCATION MODEL
+// ============================================================================
+
+model Location {
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Basic information
+  name                String
+  code                String?
+  description         String?
+  
+  // Hierarchical classification
+  locationType        LocationType
+  
+  // Parent-child relationship for hierarchy
+  // Example: Building → Floor → Wing → Area
+  parentLocationId    String?         @db.ObjectId
+  parentLocation      Location?       @relation("LocationHierarchy", fields: [parentLocationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childLocations      Location[]      @relation("LocationHierarchy")
+  isParentLocation    Boolean         @default(false)
+  
+  // Organization identifier
+  organizationId      String
+  
+  // Address (primarily for BUILDING type, optional for child locations)
+  address             String?
+  city                String?
+  state               String?
+  country             String?         // ISO 3166-1 alpha-2
+  postalCode          String?
+  
+  // Geolocation
+  latitude            Float?
+  longitude           Float?
+  
+  // Timezone
+  timezone            String          @default("UTC")
+  
+  // Polymorphic metadata based on locationType
+  // Examples:
+  // - BUILDING: {buildingType, totalFloors, hasElevator, parkingSpots, accessibility}
+  // - FLOOR: {floorNumber, floorLabel, ceilingHeight, hasRestrooms, capacity}
+  // - WING: {wingIdentifier, floorNumbers, zoneType, capacity}
+  // - AREA: {areaType, isPublicArea, hasClimate, seatingCapacity}
+  // - ZONE: {zoneType, securityLevel, allowedActivities, operatingHours}
+  // - OUTDOOR: {outdoorType, hasShade, surfaceType, weatherDependent}
+  metadata            Json?
+  
+  // Images
+  imageUrl            String[]        @default([])
+  
+  // Path for hierarchical organization
+  // Example: "/building-1/floor-2/wing-north/area-lobby"
+  path                String?
+  
+  // Relationships
+  facilities          Facility[]
+  
+  isActive            Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  @@index([organizationId])
+  @@index([locationType])
+  @@index([parentLocationId])
+  @@index([path])
+  @@index([country, city])
+}

@@ -75,6 +75,58 @@ export const config = {
 			ERROR_UPDATING: "Error updating facility",
 			ORDER_MUST_BE_ASC_OR_DESC: "Order must be asc or desc",
 		},
+		FACILITYTYPE: {
+			VALIDATION_FAILED: "FacilityType validation failed",
+			INVALID_ID_FORMAT: "Invalid facilitytype ID format",
+			NOT_FOUND: "FacilityType not found",
+			CREATE_FAILED: "Error creating facilitytype",
+			UPDATE_FAILED: "Error updating facilitytype",
+			DELETE_FAILED: "Error deleting facilitytype",
+			GET_FAILED: "Error getting facilitytype",
+			GET_ALL_FAILED: "Error getting facilitytypes",
+			ERROR_GETTING: "Error getting facilitytype",
+			ERROR_UPDATING: "Error updating facilitytype",
+			ORDER_MUST_BE_ASC_OR_DESC: "Order must be asc or desc",
+		},
+		RATETYPE: {
+			VALIDATION_FAILED: "RateType validation failed",
+			INVALID_ID_FORMAT: "Invalid ratetype ID format",
+			NOT_FOUND: "RateType not found",
+			CREATE_FAILED: "Error creating ratetype",
+			UPDATE_FAILED: "Error updating ratetype",
+			DELETE_FAILED: "Error deleting ratetype",
+			GET_FAILED: "Error getting ratetype",
+			GET_ALL_FAILED: "Error getting ratetypes",
+			ERROR_GETTING: "Error getting ratetype",
+			ERROR_UPDATING: "Error updating ratetype",
+			ORDER_MUST_BE_ASC_OR_DESC: "Order must be asc or desc",
+		},
+		LOCATION: {
+			VALIDATION_FAILED: "Location validation failed",
+			INVALID_ID_FORMAT: "Invalid location ID format",
+			NOT_FOUND: "Location not found",
+			CREATE_FAILED: "Error creating location",
+			UPDATE_FAILED: "Error updating location",
+			DELETE_FAILED: "Error deleting location",
+			GET_FAILED: "Error getting location",
+			GET_ALL_FAILED: "Error getting locations",
+			ERROR_GETTING: "Error getting location",
+			ERROR_UPDATING: "Error updating location",
+			ORDER_MUST_BE_ASC_OR_DESC: "Order must be asc or desc",
+		},
+		RESERVATION: {
+			VALIDATION_FAILED: "Reservation validation failed",
+			INVALID_ID_FORMAT: "Invalid reservation ID format",
+			NOT_FOUND: "Reservation not found",
+			CREATE_FAILED: "Error creating reservation",
+			UPDATE_FAILED: "Error updating reservation",
+			DELETE_FAILED: "Error deleting reservation",
+			GET_FAILED: "Error getting reservation",
+			GET_ALL_FAILED: "Error getting reservations",
+			ERROR_GETTING: "Error getting reservation",
+			ERROR_UPDATING: "Error updating reservation",
+			ORDER_MUST_BE_ASC_OR_DESC: "Order must be asc or desc",
+		},
 	},
 
 	SUCCESS: {
@@ -106,9 +158,133 @@ export const config = {
 			RETRIEVED_ALL: "Facilitys retrieved successfully",
 			GETTING_BY_ID: "Getting facility by ID",
 		},
+		FACILITYTYPE: {
+			CREATED: "FacilityType created successfully",
+			UPDATED: "FacilityType updated successfully",
+			DELETED: "FacilityType deleted successfully",
+			RETRIEVED: "FacilityType retrieved successfully",
+			RETRIEVED_ALL: "FacilityTypes retrieved successfully",
+			GETTING_BY_ID: "Getting facilitytype by ID",
+		},
+		RATETYPE: {
+			CREATED: "RateType created successfully",
+			UPDATED: "RateType updated successfully",
+			DELETED: "RateType deleted successfully",
+			RETRIEVED: "RateType retrieved successfully",
+			RETRIEVED_ALL: "RateTypes retrieved successfully",
+			GETTING_BY_ID: "Getting ratetype by ID",
+		},
+		LOCATION: {
+			CREATED: "Location created successfully",
+			UPDATED: "Location updated successfully",
+			DELETED: "Location deleted successfully",
+			RETRIEVED: "Location retrieved successfully",
+			RETRIEVED_ALL: "Locations retrieved successfully",
+			GETTING_BY_ID: "Getting location by ID",
+		},
+		RESERVATION: {
+			CREATED: "Reservation created successfully",
+			UPDATED: "Reservation updated successfully",
+			DELETED: "Reservation deleted successfully",
+			RETRIEVED: "Reservation retrieved successfully",
+			RETRIEVED_ALL: "Reservations retrieved successfully",
+			GETTING_BY_ID: "Getting reservation by ID",
+		},
 	},
 
 	ACTIVITY_LOG: {
+		RESERVATION: {
+			ACTIONS: {
+				CREATE_RESERVATION: "CREATE_RESERVATION",
+				GET_ALL_RESERVATION: "GET_ALL_RESERVATION",
+				GET_RESERVATION: "GET_RESERVATION",
+				UPDATE_RESERVATION: "UPDATE_RESERVATION",
+				DELETE_RESERVATION: "DELETE_RESERVATION",
+			},
+			DESCRIPTIONS: {
+				RESERVATION_CREATED: "Created new reservation",
+				RESERVATION_UPDATED: "Updated reservation",
+				RESERVATION_DELETED: "Deleted reservation",
+				RESERVATION_RETRIEVED: "Retrieved reservation details",
+				RESERVATIONS_RETRIEVED: "Retrieved reservation list",
+			},
+			PAGES: {
+				RESERVATION_CREATION: "Reservation Creation",
+				RESERVATION_UPDATE: "Reservation Update",
+				RESERVATION_DELETION: "Reservation Deletion",
+				RESERVATION_DETAILS: "Reservation Details",
+				RESERVATION_LIST: "Reservation List",
+			},
+		},
+		LOCATION: {
+			ACTIONS: {
+				CREATE_LOCATION: "CREATE_LOCATION",
+				GET_ALL_LOCATION: "GET_ALL_LOCATION",
+				GET_LOCATION: "GET_LOCATION",
+				UPDATE_LOCATION: "UPDATE_LOCATION",
+				DELETE_LOCATION: "DELETE_LOCATION",
+			},
+			DESCRIPTIONS: {
+				LOCATION_CREATED: "Created new location",
+				LOCATION_UPDATED: "Updated location",
+				LOCATION_DELETED: "Deleted location",
+				LOCATION_RETRIEVED: "Retrieved location details",
+				LOCATIONS_RETRIEVED: "Retrieved location list",
+			},
+			PAGES: {
+				LOCATION_CREATION: "Location Creation",
+				LOCATION_UPDATE: "Location Update",
+				LOCATION_DELETION: "Location Deletion",
+				LOCATION_DETAILS: "Location Details",
+				LOCATION_LIST: "Location List",
+			},
+		},
+		RATETYPE: {
+			ACTIONS: {
+				CREATE_RATETYPE: "CREATE_RATETYPE",
+				GET_ALL_RATETYPE: "GET_ALL_RATETYPE",
+				GET_RATETYPE: "GET_RATETYPE",
+				UPDATE_RATETYPE: "UPDATE_RATETYPE",
+				DELETE_RATETYPE: "DELETE_RATETYPE",
+			},
+			DESCRIPTIONS: {
+				RATETYPE_CREATED: "Created new ratetype",
+				RATETYPE_UPDATED: "Updated ratetype",
+				RATETYPE_DELETED: "Deleted ratetype",
+				RATETYPE_RETRIEVED: "Retrieved ratetype details",
+				RATETYPES_RETRIEVED: "Retrieved ratetype list",
+			},
+			PAGES: {
+				RATETYPE_CREATION: "RateType Creation",
+				RATETYPE_UPDATE: "RateType Update",
+				RATETYPE_DELETION: "RateType Deletion",
+				RATETYPE_DETAILS: "RateType Details",
+				RATETYPE_LIST: "RateType List",
+			},
+		},
+		FACILITYTYPE: {
+			ACTIONS: {
+				CREATE_FACILITYTYPE: "CREATE_FACILITYTYPE",
+				GET_ALL_FACILITYTYPE: "GET_ALL_FACILITYTYPE",
+				GET_FACILITYTYPE: "GET_FACILITYTYPE",
+				UPDATE_FACILITYTYPE: "UPDATE_FACILITYTYPE",
+				DELETE_FACILITYTYPE: "DELETE_FACILITYTYPE",
+			},
+			DESCRIPTIONS: {
+				FACILITYTYPE_CREATED: "Created new facilitytype",
+				FACILITYTYPE_UPDATED: "Updated facilitytype",
+				FACILITYTYPE_DELETED: "Deleted facilitytype",
+				FACILITYTYPE_RETRIEVED: "Retrieved facilitytype details",
+				FACILITYTYPES_RETRIEVED: "Retrieved facilitytype list",
+			},
+			PAGES: {
+				FACILITYTYPE_CREATION: "FacilityType Creation",
+				FACILITYTYPE_UPDATE: "FacilityType Update",
+				FACILITYTYPE_DELETION: "FacilityType Deletion",
+				FACILITYTYPE_DETAILS: "FacilityType Details",
+				FACILITYTYPE_LIST: "FacilityType List",
+			},
+		},
 		FACILITY: {
 			ACTIONS: {
 				CREATE_FACILITY: "CREATE_FACILITY",
@@ -184,6 +360,10 @@ export const config = {
 			ORGANIZATIONS: "organizations",
 			AUTH: "auth",
 			FACILITY: "facility",
+			FACILITYTYPE: "facilitytype",
+			RATETYPE: "ratetype",
+			LOCATION: "location",
+			RESERVATION: "reservation",
 		},
 		SEVERITY: {
 			LOW: "LOW" as const,
@@ -196,6 +376,10 @@ export const config = {
 			USER: "user",
 			ORGANIZATION: "organization",
 			FACILITY: "facility",
+			FACILITYTYPE: "facilitytype",
+			RATETYPE: "ratetype",
+			LOCATION: "location",
+			RESERVATION: "reservation",
 		},
 		FACILITY: {
 			DESCRIPTIONS: {
@@ -204,6 +388,38 @@ export const config = {
 				FACILITY_DELETED: "Deleted facility",
 			},
 		},
+		FACILITYTYPE: {
+			DESCRIPTIONS: {
+				FACILITYTYPE_CREATED: "Created new facilitytype",
+				FACILITYTYPE_UPDATED: "Updated facilitytype",
+				FACILITYTYPE_DELETED: "Deleted facilitytype",
+			},
+		},
+		RATETYPE: {
+			DESCRIPTIONS: {
+				RATETYPE_CREATED: "Created new ratetype",
+				RATETYPE_UPDATED: "Updated ratetype",
+				RATETYPE_DELETED: "Deleted ratetype",
+			},
+		},
+		LOCATION: {
+			DESCRIPTIONS: {
+				LOCATION_CREATED: "Created new location",
+				LOCATION_UPDATED: "Updated location",
+				LOCATION_DELETED: "Deleted location",
+			},
+		},
+		RESERVATION: {
+			DESCRIPTIONS: {
+				RESERVATION_CREATED: "Created new reservation",
+				RESERVATION_UPDATED: "Updated reservation",
+				RESERVATION_DELETED: "Deleted reservation",
+			},
+		},
+
+
+
+
 
 		TEMPLATE: {
 			DESCRIPTIONS: {

@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cache";
+import { uploadFacilityTypeImages } from "../../middleware/upload";
 
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
 	getAll(req: Request, res: Response, next: NextFunction): Promise<void>;
-	getAvailable(req: Request, res: Response, next: NextFunction): Promise<void>;
 	create(req: Request, res: Response, next: NextFunction): Promise<void>;
 	update(req: Request, res: Response, next: NextFunction): Promise<void>;
 	remove(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -12,18 +12,15 @@ interface IController {
 
 export const router = (route: Router, controller: IController): Router => {
 	const routes = Router();
-	const path = "/facility";
-
-	// Get available facilities for a time window (overlap check against reservations)
-	routes.get("/available", controller.getAvailable);
+	const path = "/facilityType";
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/facilityType/{id}:
 	 *   get:
-	 *     summary: Get facility by ID
-	 *     description: Retrieve a specific facility by its unique identifier with optional field selection
-	 *     tags: [Facility]
+	 *     summary: Get facilityType by ID
+	 *     description: Retrieve a specific facilityType by its unique identifier with optional field selection
+	 *     tags: [FacilityType]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -33,7 +30,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: FacilityType ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *       - in: query
 	 *         name: fields
@@ -44,7 +41,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         example: "id,name,description,type"
 	 *     responses:
 	 *       200:
-	 *         description: Facility retrieved successfully
+	 *         description: FacilityType retrieved successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -55,8 +52,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         facilityType:
+	 *                           $ref: '#/components/schemas/FacilityType'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -66,14 +63,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache individual facility with predictable key for invalidation
+	// Cache individual facilityType with predictable key for invalidation
 	routes.get(
 		"/:id",
 		cache({
 			ttl: 90,
 			keyGenerator: (req: Request) => {
 				const fields = (req.query as any).fields || "full";
-				return `cache:facility:byId:${req.params.id}:${fields}`;
+				return `cache:facilityType:byId:${req.params.id}:${fields}`;
 			},
 		}),
 		controller.getById,
@@ -81,11 +78,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility:
+	 * /api/facilityType:
 	 *   get:
-	 *     summary: Get all facilitys
-	 *     description: Retrieve facilitys with advanced filtering, pagination, sorting, field selection, and optional grouping
-	 *     tags: [Facility]
+	 *     summary: Get all facilityTypes
+	 *     description: Retrieve facilityTypes with advanced filtering, pagination, sorting, field selection, and optional grouping
+	 *     tags: [FacilityType]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -158,7 +155,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           enum: ["true"]
-	 *         description: Include facility documents in response
+	 *         description: Include facilityType documents in response
 	 *       - in: query
 	 *         name: pagination
 	 *         required: false
@@ -186,17 +183,17 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilitys:
+	 *                         facilityTypes:
 	 *                           type: array
 	 *                           items:
-	 *                             $ref: '#/components/schemas/Facility'
+	 *                             $ref: '#/components/schemas/FacilityType'
 	 *                           description: Present when document="true" and no groupBy
 	 *                         groups:
 	 *                           type: object
 	 *                           additionalProperties:
 	 *                             type: array
 	 *                             items:
-	 *                               $ref: '#/components/schemas/Facility'
+	 *                               $ref: '#/components/schemas/FacilityType'
 	 *                           description: Present when groupBy is used and document="true"
 	 *                         count:
 	 *                           type: integer
@@ -211,14 +208,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache facility list with predictable key for invalidation
+	// Cache facilityType list with predictable key for invalidation
 	routes.get(
 		"/",
 		cache({
 			ttl: 60,
 			keyGenerator: (req: Request) => {
 				const queryKey = Buffer.from(JSON.stringify(req.query || {})).toString("base64");
-				return `cache:facility:list:${queryKey}`;
+				return `cache:facilityType:list:${queryKey}`;
 			},
 		}),
 		controller.getAll,
@@ -226,11 +223,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facility:
+	 * /api/facilityType:
 	 *   post:
-	 *     summary: Create new facility
-	 *     description: Create a new facility with the provided data
-	 *     tags: [Facility]
+	 *     summary: Create new facilityType
+	 *     description: Create a new facilityType with the provided data
+	 *     tags: [FacilityType]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     requestBody:
@@ -245,16 +242,16 @@ export const router = (route: Router, controller: IController): Router => {
 	 *               name:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: Facility name
-	 *                 example: "Email Welcome Facility"
+	 *                 description: FacilityType name
+	 *                 example: "Email Welcome FacilityType"
 	 *               description:
 	 *                 type: string
-	 *                 description: Facility description
-	 *                 example: "Welcome email facility for new users"
+	 *                 description: FacilityType description
+	 *                 example: "Welcome email facilityType for new users"
 	 *               type:
 	 *                 type: string
 	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: Facility type for categorization
+	 *                 description: FacilityType type for categorization
 	 *                 example: "email"
 	 *               isDeleted:
 	 *                 type: boolean
@@ -292,7 +289,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                 type: boolean
 	 *     responses:
 	 *       201:
-	 *         description: Facility created successfully
+	 *         description: FacilityType created successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -303,8 +300,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         facilityType:
+	 *                           $ref: '#/components/schemas/FacilityType'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -312,15 +309,15 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	routes.post("/", controller.create);
+	routes.post("/", uploadFacilityTypeImages, controller.create);
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/facilityType/{id}:
 	 *   patch:
-	 *     summary: Update facility
-	 *     description: Update facility data by ID (partial update)
-	 *     tags: [Facility]
+	 *     summary: Update facilityType
+	 *     description: Update facilityType data by ID (partial update)
+	 *     tags: [FacilityType]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -330,7 +327,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: FacilityType ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     requestBody:
 	 *       required: true
@@ -343,16 +340,16 @@ export const router = (route: Router, controller: IController): Router => {
 	 *               name:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: Facility name
-	 *                 example: "Updated Email Facility"
+	 *                 description: FacilityType name
+	 *                 example: "Updated Email FacilityType"
 	 *               description:
 	 *                 type: string
-	 *                 description: Facility description
-	 *                 example: "Updated description for the facility"
+	 *                 description: FacilityType description
+	 *                 example: "Updated description for the facilityType"
 	 *               type:
 	 *                 type: string
 	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: Facility type for categorization
+	 *                 description: FacilityType type for categorization
 	 *                 example: "email"
 	 *               isDeleted:
 	 *                 type: boolean
@@ -360,7 +357,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                 example: false
 	 *     responses:
 	 *       200:
-	 *         description: Facility updated successfully
+	 *         description: FacilityType updated successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -371,8 +368,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facility:
-	 *                           $ref: '#/components/schemas/Facility'
+	 *                         facilityType:
+	 *                           $ref: '#/components/schemas/FacilityType'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -382,15 +379,15 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	routes.patch("/:id", controller.update);
+	routes.patch("/:id", uploadFacilityTypeImages, controller.update);
 
 	/**
 	 * @openapi
-	 * /api/facility/{id}:
+	 * /api/facilityType/{id}:
 	 *   delete:
-	 *     summary: Delete facility
-	 *     description: Permanently delete a facility by ID
-	 *     tags: [Facility]
+	 *     summary: Delete facilityType
+	 *     description: Permanently delete a facilityType by ID
+	 *     tags: [FacilityType]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -400,11 +397,11 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: Facility ID (MongoDB ObjectId format)
+	 *         description: FacilityType ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     responses:
 	 *       200:
-	 *         description: Facility deleted successfully
+	 *         description: FacilityType deleted successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
