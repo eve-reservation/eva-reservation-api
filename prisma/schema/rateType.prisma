@@ -3,6 +3,9 @@ model RateType {
   name            String
   description     String?
   
+  // Organization identifier
+  organizationId  String
+  
   baseRate        Float
   currency        String          @default("USD")
   

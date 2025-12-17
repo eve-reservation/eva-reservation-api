@@ -19,6 +19,28 @@ import { DEFAULT_BLOCKING_STATUSES } from "../../helper/reservation-availability
 import { config } from "../../config/constant";
 import { redisClient } from "../../config/redis";
 import { invalidateCache } from "../../middleware/cache";
+import { uploadMultipleToCloudinary } from "../../helper/cloudinary-upload";
+import { FacilityImageType } from "../../zod/facilityType.zod";
+
+// Map multipart field names to FacilityImageType enum values
+const FACILITY_IMAGE_TYPE_MAP: Record<string, FacilityImageType> = {
+	coverImages: "COVER",
+	featuredImages: "FEATURED",
+	galleryImages: "GALLERY",
+	thumbnailImages: "THUMBNAIL",
+	floorPlanImages: "FLOOR_PLAN",
+	exteriorImages: "EXTERIOR",
+	interiorImages: "INTERIOR",
+	amenityImages: "AMENITY",
+	images: "GALLERY", // fallback for generic images
+};
+
+// Structure for uploaded image info for Facility
+interface FacilityUploadedImageInfo {
+	name: string;
+	url: string;
+	type: FacilityImageType;
+}
 
 const logger = getLogger();
 const facilityLogger = logger.child({ module: "facility" });
@@ -40,6 +62,60 @@ export const controller = (prisma: PrismaClient) => {
 			);
 		}
 
+		// Handle image uploads if files are present (multipart/form-data)
+		let facilityImages: FacilityUploadedImageInfo[] = [];
+		if (req.files && Object.keys(req.files as any).length > 0) {
+			try {
+				const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+				// Count total images for logging
+				let totalImages = 0;
+				for (const fieldName of Object.keys(FACILITY_IMAGE_TYPE_MAP)) {
+					const fieldFiles = files[fieldName] || [];
+					totalImages += fieldFiles.length;
+				}
+
+				facilityLogger.info(`Processing ${totalImages} uploaded facility images`);
+
+				// Process each image type field
+				for (const [fieldName, imageType] of Object.entries(FACILITY_IMAGE_TYPE_MAP)) {
+					const fieldFiles = files[fieldName] || [];
+					if (fieldFiles.length === 0) continue;
+
+					const uploadResults = await uploadMultipleToCloudinary(fieldFiles, {
+						folder: `facilities/${requestData.organizationId || "default"}/${imageType.toLowerCase()}`,
+					});
+
+					for (let index = 0; index < uploadResults.length; index++) {
+						const result = uploadResults[index];
+						if (result.success && result.secureUrl) {
+							const originalName =
+								fieldFiles[index].originalname ||
+								`${imageType.toLowerCase()}-${index + 1}`;
+							const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "");
+
+							facilityImages.push({
+								name: nameWithoutExtension,
+								url: result.secureUrl,
+								type: imageType,
+							});
+						}
+					}
+
+					facilityLogger.info(
+						`Successfully uploaded ${facilityImages.length} facility images (so far) to Cloudinary`,
+					);
+				}
+			} catch (uploadError: any) {
+				facilityLogger.error(`Error uploading facility images: ${uploadError.message}`);
+				const errorResponse = buildErrorResponse("Failed to upload images", 500, [
+					{ field: "images", message: uploadError.message },
+				]);
+				res.status(500).json(errorResponse);
+				return;
+			}
+		}
+
 		const validation = CreateFacilitySchema.safeParse(requestData);
 		if (!validation.success) {
 			const formattedErrors = formatZodErrors(validation.error.format());
@@ -50,7 +126,13 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			const facility = await prisma.facility.create({ data: validation.data });
+			const facility = await prisma.facility.create({
+				// Cast to any for now because Prisma client types may not yet include the new "images" field
+				data: {
+					...validation.data,
+					images: facilityImages.length > 0 ? facilityImages : [],
+				} as any,
+			});
 			facilityLogger.info(`Facility created successfully: ${facility.id}`);
 
 			logActivity(req, {
@@ -297,9 +379,24 @@ export const controller = (prisma: PrismaClient) => {
 	};
 
 	const getAvailable = async (req: Request, res: Response, _next: NextFunction) => {
-		const { startDateTime, endDateTime } = req.query;
-		const limit = Math.min(parseInt((req.query.limit as string) || "50", 10), 200);
-		const skip = parseInt((req.query.skip as string) || "0", 10);
+		const { startDateTime, endDateTime, filter, pagination, count, page, limit, skip } =
+			req.query;
+
+		// Parse pagination parameters
+		const limitValue = Math.min(
+			parseInt((limit as string) || (req.query.limit as string) || "50", 10),
+			200,
+		);
+		const skipValue = skip
+			? parseInt(skip as string, 10)
+			: page
+				? (parseInt(page as string, 10) - 1) * limitValue
+				: parseInt((req.query.skip as string) || "0", 10);
+		const pageValue = page
+			? parseInt(page as string, 10)
+			: Math.floor(skipValue / limitValue) + 1;
+		const paginationValue = pagination === "true";
+		const countValue = count === "true";
 
 		if (
 			!startDateTime ||
@@ -315,10 +412,10 @@ export const controller = (prisma: PrismaClient) => {
 			return;
 		}
 
-		const start = new Date(startDateTime);
-		const end = new Date(endDateTime);
+		const originalStart = new Date(startDateTime);
+		const originalEnd = new Date(endDateTime);
 
-		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+		if (isNaN(originalStart.getTime()) || isNaN(originalEnd.getTime())) {
 			const errorResponse = buildErrorResponse(
 				"Invalid date format for startDateTime or endDateTime",
 				400,
@@ -326,6 +423,16 @@ export const controller = (prisma: PrismaClient) => {
 			res.status(400).json(errorResponse);
 			return;
 		}
+
+		// Adjust dates for Philippine Time (subtract 8 hours from UTC)
+		const start = new Date(originalStart);
+		const end = new Date(originalEnd);
+		start.setHours(start.getHours() - 8);
+		end.setHours(end.getHours() - 8);
+
+		facilityLogger.info(
+			`Adjusted date times for Philippine Time: original startDateTime=${originalStart.toISOString()}, adjusted=${start.toISOString()}, original endDateTime=${originalEnd.toISOString()}, adjusted=${end.toISOString()}`,
+		);
 
 		if (end <= start) {
 			const errorResponse = buildErrorResponse(
@@ -337,38 +444,100 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			const facilities = await prisma.facility.findMany({
-				where: {
-					reservations: {
-						none: {
-							status: { in: DEFAULT_BLOCKING_STATUSES },
-							bookingPeriod: {
-								is: {
-									startDateTime: { lt: end },
-									endDateTime: { gt: start },
-								},
+			// Build base where clause for availability check
+			const availabilityCondition: Prisma.FacilityWhereInput = {
+				reservations: {
+					none: {
+						status: { in: DEFAULT_BLOCKING_STATUSES },
+						bookingPeriod: {
+							is: {
+								startDateTime: { lt: end },
+								endDateTime: { gt: start },
 							},
 						},
 					},
 				},
-				include: {
-					location: true,
-					facilityType: true,
-				},
-				take: limit,
-				skip,
-			});
+			};
 
-			const responseData = {
+			// Build where clause - combine availability with filters if provided
+			let whereClause: Prisma.FacilityWhereInput;
+
+			if (filter && typeof filter === "string") {
+				const filterConditions = buildFilterConditions("Facility", filter);
+				if (filterConditions.length > 0) {
+					// Combine availability check with filter conditions using AND
+					whereClause = {
+						AND: [availabilityCondition, ...filterConditions],
+					};
+				} else {
+					whereClause = availabilityCondition;
+				}
+			} else {
+				whereClause = availabilityCondition;
+			}
+
+			// Fetch facilities and count in parallel when needed
+			const [facilities, total] = await Promise.all([
+				prisma.facility.findMany({
+					where: whereClause,
+					include: {
+						location: true,
+						facilityType: {
+							include: {
+								rateType: true,
+							},
+						},
+					},
+					take: limitValue,
+					skip: skipValue,
+				}),
+				countValue ? prisma.facility.count({ where: whereClause }) : Promise.resolve(0),
+			]);
+
+			// Build response data - use original dates in window to show what user requested
+			const responseData: Record<string, any> = {
 				availableFacilities: facilities,
-				window: { startDateTime: start.toISOString(), endDateTime: end.toISOString() },
+				window: {
+					startDateTime: originalStart.toISOString(),
+					endDateTime: originalEnd.toISOString(),
+					// Include adjusted times for verification (adjusted for Philippine Time)
+					adjustedStartDateTime: start.toISOString(),
+					adjustedEndDateTime: end.toISOString(),
+				},
+				...(countValue && { count: total }),
+				...(paginationValue && {
+					pagination: buildPagination(total, pageValue, limitValue),
+				}),
 			};
 
 			res.status(200).json(
 				buildSuccessResponse(config.SUCCESS.FACILITY.RETRIEVED_ALL, responseData, 200),
 			);
-		} catch (error) {
+		} catch (error: any) {
 			facilityLogger.error(`Failed to get available facilities: ${error}`);
+
+			// Check if it's a Prisma connection error
+			if (
+				error?.code === "P1001" ||
+				error?.message?.includes("fatal alert") ||
+				error?.message?.includes("InternalError")
+			) {
+				facilityLogger.error("Database connection error detected");
+				const errorResponse = buildErrorResponse(
+					"Database connection error. Please try again later.",
+					503,
+					[
+						{
+							field: "database",
+							message:
+								"Unable to connect to the database. The service may be temporarily unavailable.",
+						},
+					],
+				);
+				res.status(503).json(errorResponse);
+				return;
+			}
+
 			res.status(500).json(
 				buildErrorResponse(config.ERROR.COMMON.INTERNAL_SERVER_ERROR, 500),
 			);

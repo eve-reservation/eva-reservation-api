@@ -51,6 +51,9 @@ type Totals {
 model Reservation {
   id              String            @id @default(auto()) @map("_id") @db.ObjectId
   
+  // Organization identifier
+  organizationId  String
+  
   facility        Facility          @relation(fields: [facilityId], references: [id])
   facilityId      String            @db.ObjectId
   

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidObjectId } from "mongoose";
+import { FacilityImageSchema } from "./facilityType.zod";
 
 // Facility Status Enum
 export const FacilityStatusSchema = z.enum([
@@ -23,6 +24,7 @@ export const FacilitySchema = z.object({
 	organizationId: z.string().min(1),
 	locationId: z.string().refine((val) => isValidObjectId(val)).optional().nullable(),
 	attributes: z.any().optional(),
+	images: z.array(FacilityImageSchema).optional().default([]),
 	status: FacilityStatusSchema.optional().default("AVAILABLE"),
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),

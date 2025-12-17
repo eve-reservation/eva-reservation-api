@@ -30,6 +30,9 @@ model Facility {
   
   // Instance-specific attributes (overrides facilityType)
   attributes      Json?
+
+  // Images specific to this facility instance
+  images          FacilityImage[]
   
   // Status (replaces isActive and isUnderMaintenance)
   status          FacilityStatus  @default(AVAILABLE)

@@ -24,6 +24,54 @@ import { invalidateCache } from "../../middleware/cache";
 const logger = getLogger();
 const reservationLogger = logger.child({ module: "reservation" });
 
+/**
+ * Adjusts a date by subtracting 8 hours to convert from UTC to Philippine Time
+ * @param date - The date to adjust
+ * @returns A new Date object with 8 hours subtracted
+ */
+const adjustDateForPhilippineTime = (date: Date): Date => {
+	const adjustedDate = new Date(date);
+	adjustedDate.setHours(adjustedDate.getHours() - 8);
+	return adjustedDate;
+};
+
+/**
+ * Adjusts booking period dates for Philippine Time
+ * @param bookingPeriod - The booking period object
+ * @returns A new booking period object with adjusted dates
+ */
+const adjustBookingPeriodForPhilippineTime = (bookingPeriod: any) => {
+	if (!bookingPeriod) return bookingPeriod;
+
+	const adjusted = { ...bookingPeriod };
+
+	if (bookingPeriod.startDateTime) {
+		adjusted.startDateTime = adjustDateForPhilippineTime(
+			new Date(bookingPeriod.startDateTime),
+		);
+	}
+
+	if (bookingPeriod.endDateTime) {
+		adjusted.endDateTime = adjustDateForPhilippineTime(
+			new Date(bookingPeriod.endDateTime),
+		);
+	}
+
+	if (bookingPeriod.checkedInAt) {
+		adjusted.checkedInAt = adjustDateForPhilippineTime(
+			new Date(bookingPeriod.checkedInAt),
+		);
+	}
+
+	if (bookingPeriod.checkedOutAt) {
+		adjusted.checkedOutAt = adjustDateForPhilippineTime(
+			new Date(bookingPeriod.checkedOutAt),
+		);
+	}
+
+	return adjusted;
+};
+
 export const controller = (prisma: PrismaClient) => {
 	const create = async (req: Request, res: Response, _next: NextFunction) => {
 		let requestData = req.body;
@@ -52,7 +100,7 @@ export const controller = (prisma: PrismaClient) => {
 
 		try {
 			// Ensure booking window exists and is available
-			const { bookingPeriod, facilityId } = validation.data;
+			let { bookingPeriod, facilityId } = validation.data;
 			if (!bookingPeriod?.startDateTime || !bookingPeriod?.endDateTime) {
 				const errorResponse = buildErrorResponse(
 					"bookingPeriod.startDateTime and bookingPeriod.endDateTime are required",
@@ -61,6 +109,28 @@ export const controller = (prisma: PrismaClient) => {
 				res.status(400).json(errorResponse);
 				return;
 			}
+
+			// At this point, bookingPeriod is guaranteed to exist with startDateTime and endDateTime
+			// Adjust dates for Philippine Time (subtract 8 hours from UTC)
+			bookingPeriod = adjustBookingPeriodForPhilippineTime(bookingPeriod);
+			
+			// Ensure adjusted dates are still defined
+			if (!bookingPeriod || !bookingPeriod.startDateTime || !bookingPeriod.endDateTime) {
+				const errorResponse = buildErrorResponse(
+					"Failed to adjust booking period dates",
+					500,
+				);
+				res.status(500).json(errorResponse);
+				return;
+			}
+
+			// TypeScript now knows startDateTime and endDateTime are defined
+			const adjustedStartDateTime = bookingPeriod.startDateTime;
+			const adjustedEndDateTime = bookingPeriod.endDateTime;
+
+			reservationLogger.info(
+				`Adjusted booking period dates for Philippine Time: startDateTime=${adjustedStartDateTime.toISOString()}, endDateTime=${adjustedEndDateTime.toISOString()}`,
+			);
 
 			// Fetch facility + rateType to compute pricing
 			const facility = await prisma.facility.findUnique({
@@ -83,8 +153,8 @@ export const controller = (prisma: PrismaClient) => {
 			const availability = await checkFacilityReservationConflicts({
 				prisma,
 				facilityId,
-				startDateTime: bookingPeriod.startDateTime,
-				endDateTime: bookingPeriod.endDateTime,
+				startDateTime: adjustedStartDateTime,
+				endDateTime: adjustedEndDateTime,
 			});
 
 			if (!availability.isAvailable) {
@@ -102,13 +172,14 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// Auto-calculate pricing when rateType is available
-			let data = { ...validation.data };
+			let data = { ...validation.data, bookingPeriod };
 			const rateType = facility.facilityType?.rateType;
 			if (rateType) {
 				const pricing = computeReservationPricing(
 					rateType,
 					{
-						...bookingPeriod,
+						startDateTime: adjustedStartDateTime,
+						endDateTime: adjustedEndDateTime,
 						numberOfDays: bookingPeriod.numberOfDays ?? undefined,
 						numberOfHours: bookingPeriod.numberOfHours ?? undefined,
 						extendedHours: bookingPeriod.extendedHours ?? undefined,
@@ -371,7 +442,20 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			const validatedData = validationResult.data;
+			let validatedData = validationResult.data;
+
+			// Adjust bookingPeriod dates for Philippine Time if they're being updated
+			if (validatedData.bookingPeriod) {
+				validatedData = {
+					...validatedData,
+					bookingPeriod: adjustBookingPeriodForPhilippineTime(validatedData.bookingPeriod),
+				};
+				if (validatedData.bookingPeriod?.startDateTime && validatedData.bookingPeriod?.endDateTime) {
+					reservationLogger.info(
+						`Adjusted booking period dates for Philippine Time in update: startDateTime=${validatedData.bookingPeriod.startDateTime.toISOString()}, endDateTime=${validatedData.bookingPeriod.endDateTime.toISOString()}`,
+					);
+				}
+			}
 
 			reservationLogger.info(`Updating reservation: ${id}`);
 

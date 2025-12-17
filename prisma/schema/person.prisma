@@ -87,7 +87,9 @@ type Metadata {
 
 model Person {
   id             String          @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String?         @db.ObjectId
+  
+  // Organization identifier
+  organizationId String
   personalInfo   PersonalInfo?
   contactInfo    ContactInfo
   identification Identification?

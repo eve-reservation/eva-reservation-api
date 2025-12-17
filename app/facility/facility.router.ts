@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cache";
+import { uploadFacilityTypeImages } from "../../middleware/upload";
 
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -312,7 +313,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	routes.post("/", controller.create);
+	// Create facility with optional image upload (multipart/form-data)
+	routes.post("/", uploadFacilityTypeImages, controller.create);
 
 	/**
 	 * @openapi

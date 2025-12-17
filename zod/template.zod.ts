@@ -8,6 +8,8 @@ export const TemplateSchema = z.object({
 	name: z.string().min(1),
 	description: z.string().optional(),
 	type: z.string().optional(),
+	// Organization identifier (required in Prisma model)
+	organizationId: z.string().min(1),
 	isDeleted: z.boolean(),
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
