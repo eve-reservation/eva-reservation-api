@@ -25,7 +25,6 @@ type PricingBase {
 }
 
 type Charges {
-  driverFee    Float @default(0)
   serviceFee   Float @default(0)
   extensionFee Float @default(0)
   addonFee     Float @default(0)
@@ -59,8 +58,14 @@ model Reservation {
   
   status          ReservationStatus @default(PENDING)
 
-  numberOCustomer  Int               @default(1)
-  customers       String[]          @default([])
+  // Industry standard: Store guest count in reservation for quick access
+  // Guests are stored in separate Guest table with minimal data
+  // Full guest details available via Person relation (optional)
+  guestCount      Int               @default(1)
+  
+  // Relation to Guest model (one-to-many)
+  // Load guests conditionally via fields parameter to minimize data transfer
+  guests          Guest[]
   
   purpose         String?          
   eventName       String?

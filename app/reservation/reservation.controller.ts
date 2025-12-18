@@ -25,51 +25,47 @@ const logger = getLogger();
 const reservationLogger = logger.child({ module: "reservation" });
 
 /**
- * Adjusts a date by subtracting 8 hours to convert from UTC to Philippine Time
- * @param date - The date to adjust
- * @returns A new Date object with 8 hours subtracted
+ * Converts a date string (with timezone) to UTC Date object
+ * JavaScript Date automatically handles ISO strings with timezone and converts to UTC
+ * @param date - The date string (e.g., "2025-12-16T06:00:00+08:00") or Date object
+ * @returns A Date object in UTC
  */
-const adjustDateForPhilippineTime = (date: Date): Date => {
-	const adjustedDate = new Date(date);
-	adjustedDate.setHours(adjustedDate.getHours() - 8);
-	return adjustedDate;
+const convertToUTC = (date: string | Date): Date => {
+	if (date instanceof Date) {
+		return date;
+	}
+	// JavaScript Date constructor automatically converts ISO strings with timezone to UTC
+	return new Date(date);
 };
 
 /**
- * Adjusts booking period dates for Philippine Time
+ * Converts booking period dates to UTC
+ * Accepts ISO strings with timezone (e.g., "2025-12-16T06:00:00+08:00") and converts to UTC
  * @param bookingPeriod - The booking period object
- * @returns A new booking period object with adjusted dates
+ * @returns A new booking period object with dates converted to UTC
  */
-const adjustBookingPeriodForPhilippineTime = (bookingPeriod: any) => {
+const convertBookingPeriodToUTC = (bookingPeriod: any) => {
 	if (!bookingPeriod) return bookingPeriod;
 
-	const adjusted = { ...bookingPeriod };
+	const converted = { ...bookingPeriod };
 
 	if (bookingPeriod.startDateTime) {
-		adjusted.startDateTime = adjustDateForPhilippineTime(
-			new Date(bookingPeriod.startDateTime),
-		);
+		converted.startDateTime = convertToUTC(bookingPeriod.startDateTime);
 	}
 
 	if (bookingPeriod.endDateTime) {
-		adjusted.endDateTime = adjustDateForPhilippineTime(
-			new Date(bookingPeriod.endDateTime),
-		);
+		converted.endDateTime = convertToUTC(bookingPeriod.endDateTime);
 	}
 
 	if (bookingPeriod.checkedInAt) {
-		adjusted.checkedInAt = adjustDateForPhilippineTime(
-			new Date(bookingPeriod.checkedInAt),
-		);
+		converted.checkedInAt = convertToUTC(bookingPeriod.checkedInAt);
 	}
 
 	if (bookingPeriod.checkedOutAt) {
-		adjusted.checkedOutAt = adjustDateForPhilippineTime(
-			new Date(bookingPeriod.checkedOutAt),
-		);
+		converted.checkedOutAt = convertToUTC(bookingPeriod.checkedOutAt);
 	}
 
-	return adjusted;
+	return converted;
 };
 
 export const controller = (prisma: PrismaClient) => {
@@ -111,13 +107,13 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// At this point, bookingPeriod is guaranteed to exist with startDateTime and endDateTime
-			// Adjust dates for Philippine Time (subtract 8 hours from UTC)
-			bookingPeriod = adjustBookingPeriodForPhilippineTime(bookingPeriod);
-			
-			// Ensure adjusted dates are still defined
+			// Convert dates from timezone-aware strings (e.g., "2025-12-16T06:00:00+08:00") to UTC
+			bookingPeriod = convertBookingPeriodToUTC(bookingPeriod);
+
+			// Ensure converted dates are still defined
 			if (!bookingPeriod || !bookingPeriod.startDateTime || !bookingPeriod.endDateTime) {
 				const errorResponse = buildErrorResponse(
-					"Failed to adjust booking period dates",
+					"Failed to convert booking period dates to UTC",
 					500,
 				);
 				res.status(500).json(errorResponse);
@@ -125,11 +121,11 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// TypeScript now knows startDateTime and endDateTime are defined
-			const adjustedStartDateTime = bookingPeriod.startDateTime;
-			const adjustedEndDateTime = bookingPeriod.endDateTime;
+			const utcStartDateTime = bookingPeriod.startDateTime;
+			const utcEndDateTime = bookingPeriod.endDateTime;
 
 			reservationLogger.info(
-				`Adjusted booking period dates for Philippine Time: startDateTime=${adjustedStartDateTime.toISOString()}, endDateTime=${adjustedEndDateTime.toISOString()}`,
+				`Converted booking period dates to UTC: startDateTime=${utcStartDateTime.toISOString()}, endDateTime=${utcEndDateTime.toISOString()}`,
 			);
 
 			// Fetch facility + rateType to compute pricing
@@ -145,7 +141,32 @@ export const controller = (prisma: PrismaClient) => {
 			});
 
 			if (!facility) {
-				const errorResponse = buildErrorResponse("Facility not found", 404);
+				// Check if it might be a FacilityType ID instead
+				const facilityTypeCheck = await prisma.facilityType.findUnique({
+					where: { id: facilityId },
+				});
+
+				if (facilityTypeCheck) {
+					const errorResponse = buildErrorResponse(
+						"Facility not found. The provided ID appears to be a FacilityType ID. Please use a Facility ID instead. Use GET /api/facility to list available facilities.",
+						404,
+						[
+							{
+								field: "facilityId",
+								message: `The ID "${facilityId}" is a FacilityType ID. Reservations require a Facility ID (an instance of a FacilityType). Please create a Facility first or use an existing Facility ID.`,
+							},
+						],
+					);
+					res.status(404).json(errorResponse);
+					return;
+				}
+
+				const errorResponse = buildErrorResponse("Facility not found", 404, [
+					{
+						field: "facilityId",
+						message: `No facility found with ID "${facilityId}". Use GET /api/facility to list available facilities.`,
+					},
+				]);
 				res.status(404).json(errorResponse);
 				return;
 			}
@@ -153,8 +174,8 @@ export const controller = (prisma: PrismaClient) => {
 			const availability = await checkFacilityReservationConflicts({
 				prisma,
 				facilityId,
-				startDateTime: adjustedStartDateTime,
-				endDateTime: adjustedEndDateTime,
+				startDateTime: utcStartDateTime,
+				endDateTime: utcEndDateTime,
 			});
 
 			if (!availability.isAvailable) {
@@ -178,8 +199,8 @@ export const controller = (prisma: PrismaClient) => {
 				const pricing = computeReservationPricing(
 					rateType,
 					{
-						startDateTime: adjustedStartDateTime,
-						endDateTime: adjustedEndDateTime,
+						startDateTime: utcStartDateTime,
+						endDateTime: utcEndDateTime,
 						numberOfDays: bookingPeriod.numberOfDays ?? undefined,
 						numberOfHours: bookingPeriod.numberOfHours ?? undefined,
 						extendedHours: bookingPeriod.extendedHours ?? undefined,
@@ -199,7 +220,9 @@ export const controller = (prisma: PrismaClient) => {
 				};
 			}
 
-			const reservation = await prisma.reservation.create({ data });
+			// Exclude guests from create data - guests are managed separately via Guest model
+			const { guests, ...createData } = data as any;
+			const reservation = await prisma.reservation.create({ data: createData });
 			reservationLogger.info(`Reservation created successfully: ${reservation.id}`);
 
 			logActivity(req, {
@@ -302,16 +325,59 @@ export const controller = (prisma: PrismaClient) => {
 					whereClause.AND = filterConditions;
 				}
 			}
-			const findManyQuery = buildFindManyQuery(whereClause, skip, limit, order, sort, fields);
+			const findManyQuery = buildFindManyQuery(
+				whereClause,
+				skip,
+				limit,
+				order,
+				sort,
+				fields,
+				"Reservation",
+			);
 
-			const reservationPromise = document ? prisma.reservation.findMany(findManyQuery) : Promise.resolve([]);
-			const countPromise = count ? prisma.reservation.count({ where: whereClause }) : Promise.resolve(0);
+			// Always include guests in the response
+			if (findManyQuery.select) {
+				// If using select, add guests to the select object
+				findManyQuery.select.guests = {
+					where: { isDeleted: false },
+					select: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						phone: true,
+						specialRequests: true,
+						dietaryRestrictions: true,
+						isPrimaryGuest: true,
+						personId: true,
+						createdAt: true,
+						updatedAt: true,
+					},
+				};
+			} else {
+				// If not using select, use include
+				findManyQuery.include = {
+					...findManyQuery.include,
+					guests: {
+						where: { isDeleted: false },
+					},
+				};
+			}
+
+			const reservationPromise = document
+				? prisma.reservation.findMany(findManyQuery)
+				: Promise.resolve([]);
+			const countPromise = count
+				? prisma.reservation.count({ where: whereClause })
+				: Promise.resolve(0);
 
 			const [reservations, total] = await Promise.all([reservationPromise, countPromise]);
 
 			reservationLogger.info(`Retrieved ${reservations.length} reservations`);
 			const processedData =
-				groupBy && document ? groupDataByField(reservations, groupBy as string) : reservations;
+				groupBy && document
+					? groupDataByField(reservations, groupBy as string)
+					: reservations;
 
 			const responseData: Record<string, any> = {
 				...(document && { reservations: processedData }),
@@ -361,11 +427,16 @@ export const controller = (prisma: PrismaClient) => {
 				if (redisClient.isClientConnected()) {
 					reservation = await redisClient.getJSON(cacheKey);
 					if (reservation) {
-						reservationLogger.info(`Reservation ${id} retrieved from direct Redis cache`);
+						reservationLogger.info(
+							`Reservation ${id} retrieved from direct Redis cache`,
+						);
 					}
 				}
 			} catch (cacheError) {
-				reservationLogger.warn(`Redis cache retrieval failed for reservation ${id}:`, cacheError);
+				reservationLogger.warn(
+					`Redis cache retrieval failed for reservation ${id}:`,
+					cacheError,
+				);
 			}
 
 			if (!reservation) {
@@ -373,7 +444,36 @@ export const controller = (prisma: PrismaClient) => {
 					where: { id },
 				};
 
-				query.select = getNestedFields(fields);
+				const selectedFields = getNestedFields(fields);
+				if (selectedFields) {
+					// If using select, add guests to the select object
+					query.select = {
+						...selectedFields,
+						guests: {
+							where: { isDeleted: false },
+							select: {
+								id: true,
+								firstName: true,
+								lastName: true,
+								email: true,
+								phone: true,
+								specialRequests: true,
+								dietaryRestrictions: true,
+								isPrimaryGuest: true,
+								personId: true,
+								createdAt: true,
+								updatedAt: true,
+							},
+						},
+					};
+				} else {
+					// If not using select, use include
+					query.include = {
+						guests: {
+							where: { isDeleted: false },
+						},
+					};
+				}
 
 				reservation = await prisma.reservation.findFirst(query);
 
@@ -397,7 +497,9 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			reservationLogger.info(`${config.SUCCESS.RESERVATION.RETRIEVED}: ${(reservation as any).id}`);
+			reservationLogger.info(
+				`${config.SUCCESS.RESERVATION.RETRIEVED}: ${(reservation as any).id}`,
+			);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.RESERVATION.RETRIEVED,
 				reservation,
@@ -444,15 +546,18 @@ export const controller = (prisma: PrismaClient) => {
 
 			let validatedData = validationResult.data;
 
-			// Adjust bookingPeriod dates for Philippine Time if they're being updated
+			// Convert bookingPeriod dates to UTC if they're being updated
 			if (validatedData.bookingPeriod) {
 				validatedData = {
 					...validatedData,
-					bookingPeriod: adjustBookingPeriodForPhilippineTime(validatedData.bookingPeriod),
+					bookingPeriod: convertBookingPeriodToUTC(validatedData.bookingPeriod),
 				};
-				if (validatedData.bookingPeriod?.startDateTime && validatedData.bookingPeriod?.endDateTime) {
+				if (
+					validatedData.bookingPeriod?.startDateTime &&
+					validatedData.bookingPeriod?.endDateTime
+				) {
 					reservationLogger.info(
-						`Adjusted booking period dates for Philippine Time in update: startDateTime=${validatedData.bookingPeriod.startDateTime.toISOString()}, endDateTime=${validatedData.bookingPeriod.endDateTime.toISOString()}`,
+						`Converted booking period dates to UTC in update: startDateTime=${validatedData.bookingPeriod.startDateTime.toISOString()}, endDateTime=${validatedData.bookingPeriod.endDateTime.toISOString()}`,
 					);
 				}
 			}
@@ -470,7 +575,8 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			const prismaData = { ...validatedData };
+			// Exclude guests from update data - guests are managed separately via Guest model
+			const { guests, ...prismaData } = validatedData as any;
 
 			const updatedReservation = await prisma.reservation.update({
 				where: { id },
@@ -488,7 +594,9 @@ export const controller = (prisma: PrismaClient) => {
 				);
 			}
 
-			reservationLogger.info(`${config.SUCCESS.RESERVATION.UPDATED}: ${updatedReservation.id}`);
+			reservationLogger.info(
+				`${config.SUCCESS.RESERVATION.UPDATED}: ${updatedReservation.id}`,
+			);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.RESERVATION.UPDATED,
 				{ reservation: updatedReservation },
@@ -545,7 +653,11 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			reservationLogger.info(`${config.SUCCESS.RESERVATION.DELETED}: ${id}`);
-			const successResponse = buildSuccessResponse(config.SUCCESS.RESERVATION.DELETED, {}, 200);
+			const successResponse = buildSuccessResponse(
+				config.SUCCESS.RESERVATION.DELETED,
+				{},
+				200,
+			);
 			res.status(200).json(successResponse);
 		} catch (error) {
 			reservationLogger.error(`${config.ERROR.RESERVATION.DELETE_FAILED}: ${error}`);

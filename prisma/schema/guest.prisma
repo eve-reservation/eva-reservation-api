@@ -1,0 +1,44 @@
+// ============================================================================
+// GUEST MODEL - Industry Standard Pattern
+// ============================================================================
+// Stores minimal guest data for reservations
+// Full guest details are stored in Person table (optional relation)
+// This follows the pattern: Reservation -> Guest (minimal) -> Person (full details)
+// ============================================================================
+
+model Guest {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Organization identifier
+  organizationId String
+  
+  // Reservation relation (required)
+  reservation    Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId  String       @db.ObjectId
+  
+  // Optional: Link to Person for full details (when guest is a registered user)
+  personId       String?      @db.ObjectId
+  person         Person?      @relation(fields: [personId], references: [id], onDelete: SetNull)
+  
+  // Minimal guest data (essential for reservations)
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  
+  // Additional optional fields
+  specialRequests String?
+  dietaryRestrictions String?
+  
+  // Metadata
+  isPrimaryGuest Boolean      @default(false)
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+
+  @@index([reservationId])
+  @@index([personId])
+  @@index([organizationId])
+  @@map("guests")
+}

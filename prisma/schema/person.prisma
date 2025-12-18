@@ -95,6 +95,7 @@ model Person {
   identification Identification?
   metadata       Metadata?
   users          User[]
+  guests         Guest[]
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

@@ -184,7 +184,12 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Handle unique constraint violation
 			if (error.code === "P2002") {
-				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const target = error.meta?.target;
+				const fields = Array.isArray(target)
+					? target
+					: typeof target === "string"
+						? [target]
+						: ["organizationId", "identifier"];
 				const errorResponse = buildErrorResponse(
 					`A facility with this ${fields.join(" and ")} already exists in this organization`,
 					409,
@@ -617,7 +622,12 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Handle unique constraint violation
 			if (error.code === "P2002") {
-				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const target = error.meta?.target;
+				const fields = Array.isArray(target)
+					? target
+					: typeof target === "string"
+						? [target]
+						: ["organizationId", "identifier"];
 				const errorResponse = buildErrorResponse(
 					`A facility with this ${fields.join(" and ")} already exists in this organization`,
 					409,

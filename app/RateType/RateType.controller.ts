@@ -136,8 +136,8 @@ export const controller = (prisma: PrismaClient) => {
 			// Base where clause
 			const whereClause: Prisma.RateTypeWhereInput = {};
 
-			// search fields sample ("name", "description", "billingCycle")
-			const searchFields = ["name", "description", "billingCycle"];
+			// search fields sample ("name", "description")
+			const searchFields = ["name", "description"];
 			if (query) {
 				const searchConditions = buildSearchConditions("RateType", query, searchFields);
 				if (searchConditions.length > 0) {
