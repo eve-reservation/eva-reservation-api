@@ -3,6 +3,50 @@ import { Prisma } from "../generated/prisma";
 
 const dmmf: DMMF.Document = Prisma.dmmf as unknown as DMMF.Document;
 
+/**
+ * Recursively remove null values for required fields from where clause
+ */
+function cleanWhereClause(where: any, modelName: string): any {
+	if (!where || typeof where !== "object") return where;
+
+	const cleaned: any = {};
+	const model = dmmf.datamodel.models.find((m) => m.name === modelName);
+
+	for (const [key, value] of Object.entries(where)) {
+		// Handle special Prisma operators (OR, AND, NOT, etc.)
+		if (key === "OR" || key === "AND" || key === "NOT") {
+			if (Array.isArray(value)) {
+				cleaned[key] = value.map((item) => cleanWhereClause(item, modelName));
+			} else {
+				cleaned[key] = cleanWhereClause(value, modelName);
+			}
+			continue;
+		}
+
+		// Check if field is required (non-nullable)
+		const fieldMeta = model?.fields.find((f) => f.name === key);
+		if (fieldMeta?.isRequired && value === null) {
+			// Skip null values for required fields
+			continue;
+		}
+
+		// Handle nested objects (relations, composite types)
+		if (
+			value &&
+			typeof value === "object" &&
+			!Array.isArray(value) &&
+			!(value instanceof Date)
+		) {
+			const nestedModelName = fieldMeta?.kind === "object" ? fieldMeta.type : modelName;
+			cleaned[key] = cleanWhereClause(value, nestedModelName);
+		} else {
+			cleaned[key] = value;
+		}
+	}
+
+	return cleaned;
+}
+
 export const buildFindManyQuery = <T extends any | undefined>(
 	whereClause: T,
 	skip: number,
@@ -10,9 +54,13 @@ export const buildFindManyQuery = <T extends any | undefined>(
 	order: "asc" | "desc",
 	sort?: string | object,
 	fields?: string,
+	modelName?: string,
 ): any => {
+	// Clean where clause to remove null values for required fields
+	const cleanedWhere = modelName ? cleanWhereClause(whereClause, modelName) : whereClause;
+
 	const query: any = {
-		where: whereClause,
+		where: cleanedWhere,
 		skip,
 		take: limit,
 		orderBy: sort
@@ -127,8 +175,13 @@ function buildCondition(modelName: string, path: string[], value: string): any {
 			if (fieldMeta.isList) {
 				return { [path[0]]: { has: parsedValue } };
 			}
-			// Special handling for null values - use explicit equals for better MongoDB compatibility
+			// Special handling for null values - skip null for non-nullable fields
 			if (parsedValue === null) {
+				// Only allow null if the field is nullable (optional)
+				if (fieldMeta.isRequired) {
+					// Skip null values for required/non-nullable fields
+					return {};
+				}
 				return { [path[0]]: null };
 			}
 			return { [path[0]]: parsedValue };

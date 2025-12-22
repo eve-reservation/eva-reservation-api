@@ -11,15 +11,15 @@ interface IController {
 
 export const router = (route: Router, controller: IController): Router => {
 	const routes = Router();
-	const path = "/facilityType";
+	const path = "/guest";
 
 	/**
 	 * @openapi
-	 * /api/facilityType/{id}:
+	 * /api/guest/{id}:
 	 *   get:
-	 *     summary: Get facilityType by ID
-	 *     description: Retrieve a specific facilityType by its unique identifier with optional field selection
-	 *     tags: [FacilityType]
+	 *     summary: Get guest by ID
+	 *     description: Retrieve a specific guest by its unique identifier with optional field selection
+	 *     tags: [Guest]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -29,7 +29,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: FacilityType ID (MongoDB ObjectId format)
+	 *         description: Guest ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *       - in: query
 	 *         name: fields
@@ -37,10 +37,10 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *         description: Comma-separated list of fields to include (supports nested fields with dot notation)
-	 *         example: "id,name,description,type"
+	 *         example: "id,firstName,lastName,email"
 	 *     responses:
 	 *       200:
-	 *         description: FacilityType retrieved successfully
+	 *         description: Guest retrieved successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -51,8 +51,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilityType:
-	 *                           $ref: '#/components/schemas/FacilityType'
+	 *                         guest:
+	 *                           $ref: '#/components/schemas/Guest'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -62,14 +62,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache individual facilityType with predictable key for invalidation
+	// Cache individual guest with predictable key for invalidation
 	routes.get(
 		"/:id",
 		cache({
 			ttl: 90,
 			keyGenerator: (req: Request) => {
 				const fields = (req.query as any).fields || "full";
-				return `cache:facilityType:byId:${req.params.id}:${fields}`;
+				return `cache:guest:byId:${req.params.id}:${fields}`;
 			},
 		}),
 		controller.getById,
@@ -77,11 +77,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facilityType:
+	 * /api/guest:
 	 *   get:
-	 *     summary: Get all facilityTypes
-	 *     description: Retrieve facilityTypes with advanced filtering, pagination, sorting, field selection, and optional grouping
-	 *     tags: [FacilityType]
+	 *     summary: Get all guests
+	 *     description: Retrieve guests with advanced filtering, pagination, sorting, field selection, and optional grouping
+	 *     tags: [Guest]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -126,35 +126,35 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *         description: Comma-separated list of fields to include (supports dot notation)
-	 *         example: "id,name,description,type"
+	 *         example: "id,firstName,lastName,email"
 	 *       - in: query
 	 *         name: query
 	 *         required: false
 	 *         schema:
 	 *           type: string
-	 *         description: Search query to filter by name or description
-	 *         example: "welcome email"
+	 *         description: Search query to filter by firstName, lastName, email, or phone
+	 *         example: "john"
 	 *       - in: query
 	 *         name: filter
 	 *         required: false
 	 *         schema:
 	 *           type: string
 	 *         description: JSON array of filter objects for advanced filtering
-	 *         example: '[{"type":"email"},{"isDeleted":false}]'
+	 *         example: '[{"reservationId":"507f1f77bcf86cd799439011"},{"isPrimaryGuest":true}]'
 	 *       - in: query
 	 *         name: groupBy
 	 *         required: false
 	 *         schema:
 	 *           type: string
 	 *         description: Group results by a field name
-	 *         example: "type"
+	 *         example: "reservationId"
 	 *       - in: query
 	 *         name: document
 	 *         required: false
 	 *         schema:
 	 *           type: string
 	 *           enum: ["true"]
-	 *         description: Include facilityType documents in response
+	 *         description: Include guest documents in response
 	 *       - in: query
 	 *         name: pagination
 	 *         required: false
@@ -171,7 +171,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         description: Include total count in response
 	 *     responses:
 	 *       200:
-	 *         description: Templates retrieved successfully
+	 *         description: Guests retrieved successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -182,17 +182,17 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilityTypes:
+	 *                         guests:
 	 *                           type: array
 	 *                           items:
-	 *                             $ref: '#/components/schemas/FacilityType'
+	 *                             $ref: '#/components/schemas/Guest'
 	 *                           description: Present when document="true" and no groupBy
 	 *                         groups:
 	 *                           type: object
 	 *                           additionalProperties:
 	 *                             type: array
 	 *                             items:
-	 *                               $ref: '#/components/schemas/FacilityType'
+	 *                               $ref: '#/components/schemas/Guest'
 	 *                           description: Present when groupBy is used and document="true"
 	 *                         count:
 	 *                           type: integer
@@ -207,14 +207,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
-	// Cache facilityType list with predictable key for invalidation
+	// Cache guest list with predictable key for invalidation
 	routes.get(
 		"/",
 		cache({
 			ttl: 60,
 			keyGenerator: (req: Request) => {
 				const queryKey = Buffer.from(JSON.stringify(req.query || {})).toString("base64");
-				return `cache:facilityType:list:${queryKey}`;
+				return `cache:guest:list:${queryKey}`;
 			},
 		}),
 		controller.getAll,
@@ -222,11 +222,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facilityType:
+	 * /api/guest:
 	 *   post:
-	 *     summary: Create new facilityType
-	 *     description: Create a new facilityType with the provided data
-	 *     tags: [FacilityType]
+	 *     summary: Create new guest
+	 *     description: Create a new guest for a reservation with minimal data
+	 *     tags: [Guest]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     requestBody:
@@ -236,59 +236,90 @@ export const router = (route: Router, controller: IController): Router => {
 	 *           schema:
 	 *             type: object
 	 *             required:
-	 *               - name
+	 *               - reservationId
+	 *               - firstName
+	 *               - lastName
 	 *             properties:
-	 *               name:
+	 *               reservationId:
+	 *                 type: string
+	 *                 pattern: '^[0-9a-fA-F]{24}$'
+	 *                 description: Reservation ID this guest belongs to
+	 *                 example: "507f1f77bcf86cd799439011"
+	 *               personId:
+	 *                 type: string
+	 *                 pattern: '^[0-9a-fA-F]{24}$'
+	 *                 description: Optional Person ID for full guest details
+	 *                 example: "507f1f77bcf86cd799439012"
+	 *               firstName:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: FacilityType name
-	 *                 example: "Email Welcome FacilityType"
-	 *               description:
+	 *                 description: Guest first name
+	 *                 example: "John"
+	 *               lastName:
 	 *                 type: string
-	 *                 description: FacilityType description
-	 *                 example: "Welcome email facilityType for new users"
-	 *               type:
+	 *                 minLength: 1
+	 *                 description: Guest last name
+	 *                 example: "Doe"
+	 *               email:
 	 *                 type: string
-	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: FacilityType type for categorization
-	 *                 example: "email"
-	 *               isDeleted:
+	 *                 format: email
+	 *                 description: Guest email address
+	 *                 example: "john.doe@example.com"
+	 *               phone:
+	 *                 type: string
+	 *                 description: Guest phone number
+	 *                 example: "+1234567890"
+	 *               specialRequests:
+	 *                 type: string
+	 *                 description: Special requests or notes for this guest
+	 *                 example: "Vegetarian meal preference"
+	 *               dietaryRestrictions:
+	 *                 type: string
+	 *                 description: Dietary restrictions or allergies
+	 *                 example: "No nuts, gluten-free"
+	 *               isPrimaryGuest:
 	 *                 type: boolean
-	 *                 description: Soft delete flag
+	 *                 description: Whether this is the primary guest for the reservation
 	 *                 default: false
 	 *         application/x-www-form-urlencoded:
 	 *           schema:
 	 *             type: object
 	 *             required:
-	 *               - name
+	 *               - reservationId
+	 *               - firstName
+	 *               - lastName
 	 *             properties:
-	 *               name:
+	 *               reservationId:
 	 *                 type: string
-	 *                 minLength: 1
-	 *               description:
+	 *               firstName:
 	 *                 type: string
-	 *               type:
+	 *               lastName:
 	 *                 type: string
-	 *               isDeleted:
-	 *                 type: boolean
+	 *               email:
+	 *                 type: string
+	 *               phone:
+	 *                 type: string
 	 *         multipart/form-data:
 	 *           schema:
 	 *             type: object
 	 *             required:
-	 *               - name
+	 *               - reservationId
+	 *               - firstName
+	 *               - lastName
 	 *             properties:
-	 *               name:
+	 *               reservationId:
 	 *                 type: string
-	 *                 minLength: 1
-	 *               description:
+	 *               firstName:
 	 *                 type: string
-	 *               type:
+	 *               lastName:
 	 *                 type: string
-	 *               isDeleted:
-	 *                 type: boolean
+	 *               email:
+	 *                 type: string
+	 *               phone:
+	 *                 type: string
 	 *     responses:
 	 *       201:
-	 *         description: FacilityType created successfully
+	 *         description: Guest created successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -299,12 +330,14 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilityType:
-	 *                           $ref: '#/components/schemas/FacilityType'
+	 *                         guest:
+	 *                           $ref: '#/components/schemas/Guest'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
 	 *         $ref: '#/components/responses/Unauthorized'
+	 *       404:
+	 *         $ref: '#/components/responses/NotFound'
 	 *       500:
 	 *         $ref: '#/components/responses/InternalServerError'
 	 */
@@ -312,11 +345,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facilityType/{id}:
+	 * /api/guest/{id}:
 	 *   patch:
-	 *     summary: Update facilityType
-	 *     description: Update facilityType data by ID (partial update)
-	 *     tags: [FacilityType]
+	 *     summary: Update guest
+	 *     description: Update guest data by ID (partial update)
+	 *     tags: [Guest]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -326,7 +359,7 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: FacilityType ID (MongoDB ObjectId format)
+	 *         description: Guest ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     requestBody:
 	 *       required: true
@@ -336,27 +369,45 @@ export const router = (route: Router, controller: IController): Router => {
 	 *             type: object
 	 *             minProperties: 1
 	 *             properties:
-	 *               name:
+	 *               firstName:
 	 *                 type: string
 	 *                 minLength: 1
-	 *                 description: FacilityType name
-	 *                 example: "Updated Email FacilityType"
-	 *               description:
+	 *                 description: Guest first name
+	 *                 example: "Jane"
+	 *               lastName:
 	 *                 type: string
-	 *                 description: FacilityType description
-	 *                 example: "Updated description for the facilityType"
-	 *               type:
+	 *                 minLength: 1
+	 *                 description: Guest last name
+	 *                 example: "Doe"
+	 *               email:
 	 *                 type: string
-	 *                 enum: ["email", "sms", "push", "form"]
-	 *                 description: FacilityType type for categorization
-	 *                 example: "email"
-	 *               isDeleted:
+	 *                 format: email
+	 *                 description: Guest email address
+	 *                 example: "jane.doe@example.com"
+	 *               phone:
+	 *                 type: string
+	 *                 description: Guest phone number
+	 *                 example: "+1234567890"
+	 *               specialRequests:
+	 *                 type: string
+	 *                 description: Special requests or notes
+	 *                 example: "Late check-in requested"
+	 *               dietaryRestrictions:
+	 *                 type: string
+	 *                 description: Dietary restrictions
+	 *                 example: "Vegan"
+	 *               isPrimaryGuest:
 	 *                 type: boolean
-	 *                 description: Soft delete flag
-	 *                 example: false
+	 *                 description: Whether this is the primary guest
+	 *                 example: true
+	 *               personId:
+	 *                 type: string
+	 *                 pattern: '^[0-9a-fA-F]{24}$'
+	 *                 description: Link to Person for full details
+	 *                 example: "507f1f77bcf86cd799439012"
 	 *     responses:
 	 *       200:
-	 *         description: FacilityType updated successfully
+	 *         description: Guest updated successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:
@@ -367,8 +418,8 @@ export const router = (route: Router, controller: IController): Router => {
 	 *                     data:
 	 *                       type: object
 	 *                       properties:
-	 *                         facilityType:
-	 *                           $ref: '#/components/schemas/FacilityType'
+	 *                         guest:
+	 *                           $ref: '#/components/schemas/Guest'
 	 *       400:
 	 *         $ref: '#/components/responses/BadRequest'
 	 *       401:
@@ -382,11 +433,11 @@ export const router = (route: Router, controller: IController): Router => {
 
 	/**
 	 * @openapi
-	 * /api/facilityType/{id}:
+	 * /api/guest/{id}:
 	 *   delete:
-	 *     summary: Delete facilityType
-	 *     description: Permanently delete a facilityType by ID
-	 *     tags: [FacilityType]
+	 *     summary: Delete guest
+	 *     description: Soft delete a guest by ID (updates reservation guest count)
+	 *     tags: [Guest]
 	 *     security:
 	 *       - bearerAuth: []
 	 *     parameters:
@@ -396,11 +447,11 @@ export const router = (route: Router, controller: IController): Router => {
 	 *         schema:
 	 *           type: string
 	 *           pattern: '^[0-9a-fA-F]{24}$'
-	 *         description: FacilityType ID (MongoDB ObjectId format)
+	 *         description: Guest ID (MongoDB ObjectId format)
 	 *         example: "507f1f77bcf86cd799439011"
 	 *     responses:
 	 *       200:
-	 *         description: FacilityType deleted successfully
+	 *         description: Guest deleted successfully
 	 *         content:
 	 *           application/json:
 	 *             schema:

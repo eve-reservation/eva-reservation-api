@@ -7,6 +7,10 @@ enum Status {
 
 model User {
   id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Organization identifier
+  organizationId      String
+  
   personId            String               @db.ObjectId
   person              Person               @relation(fields: [personId], references: [id], onDelete: Cascade)
   avatar              String?

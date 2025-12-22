@@ -28,7 +28,6 @@ const PricingBaseSchema = z.object({
 });
 
 const ChargesSchema = z.object({
-	driverFee: z.number().optional().default(0),
 	serviceFee: z.number().optional().default(0),
 	extensionFee: z.number().optional().default(0),
 	addonFee: z.number().optional().default(0),
@@ -53,10 +52,13 @@ const TotalsSchema = z.object({
 // Reservation schema aligned to Prisma Mongo model
 export const ReservationSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
+	// Organization identifier (required in Prisma model)
+	organizationId: z.string().min(1),
 	facilityId: z.string().refine((val) => isValidObjectId(val)),
 	status: ReservationStatusEnum.optional().default("PENDING"),
-	numberOCustomer: z.number().int().optional().default(1),
-	customers: z.array(z.string()).optional().default([]),
+	guestCount: z.number().int().optional().default(1),
+	// Guests relation - loaded conditionally via fields parameter
+	guests: z.array(z.any()).optional(),
 	purpose: z.string().optional(),
 	eventName: z.string().optional(),
 	specialRequests: z.string().optional(),
@@ -78,20 +80,24 @@ export const ReservationSchema = z.object({
 
 export type Reservation = z.infer<typeof ReservationSchema>;
 
-// Create Reservation Schema (exclude id/createdAt/updatedAt)
+// Create Reservation Schema (exclude id/createdAt/updatedAt/guests)
+// Guests are managed separately via the Guest model
 export const CreateReservationSchema = ReservationSchema.omit({
 	id: true,
 	createdAt: true,
 	updatedAt: true,
+	guests: true,
 });
 
 export type CreateTemplate = z.infer<typeof CreateReservationSchema>;
 
 // Update Reservation Schema (partial mutable fields)
+// Guests are managed separately via the Guest model
 export const UpdateReservationSchema = ReservationSchema.omit({
 	id: true,
 	createdAt: true,
 	updatedAt: true,
+	guests: true,
 }).partial();
 
 export type UpdateTemplate = z.infer<typeof UpdateReservationSchema>;

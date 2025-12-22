@@ -1,13 +1,26 @@
+enum RateUnit {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  PER_SESSION
+  PER_PERSON
+  FLAT_RATE
+}
+
 model RateType {
   id              String          @id @default(auto()) @map("_id") @db.ObjectId
   name            String
   description     String?
   
+  // Organization identifier
+  organizationId  String
+  
   baseRate        Float
   currency        String          @default("USD")
   
-  // Rate type (hourly, daily, weekly, monthly, per-session)
-  billingCycle    String
+  // Rate unit (hourly, daily, weekly, monthly, per-session, per-person, flat-rate)
+  rateUnit        RateUnit?
   serviceFee      Float?
   tax             Float?
   

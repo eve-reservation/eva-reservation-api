@@ -1,14 +1,29 @@
 import { z } from "zod";
 import { isValidObjectId } from "mongoose";
 
+// RateUnit enum aligned to Prisma enum
+export const RateUnitEnum = z.enum([
+	"HOURLY",
+	"DAILY",
+	"WEEKLY",
+	"MONTHLY",
+	"PER_SESSION",
+	"PER_PERSON",
+	"FLAT_RATE",
+]);
+
+export type RateUnit = z.infer<typeof RateUnitEnum>;
+
 // RateType schema aligned to Prisma Mongo model
 export const RateTypeSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	// Organization identifier (required in Prisma model)
+	organizationId: z.string().min(1),
 	baseRate: z.number(),
 	currency: z.string().min(1).default("USD"),
-	billingCycle: z.string().min(1),
+	rateUnit: RateUnitEnum.optional(),
 	serviceFee: z.number().optional(),
 	tax: z.number().optional(),
 	adjustments: z.any().optional(),

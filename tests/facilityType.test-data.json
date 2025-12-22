@@ -1,0 +1,471 @@
+{
+	"facilityTypes": [
+		{
+			"name": "Deluxe King Room",
+			"code": "DLX-KING",
+			"description": "Spacious deluxe room with king bed and ocean view",
+			"spaceType": "ROOM",
+			"subtype": "GUEST_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011",
+			"rateTypeId": "507f1f77bcf86cd799439020"
+		},
+		{
+			"name": "Standard Queen Room",
+			"code": "STD-QUEEN",
+			"description": "Comfortable standard room with queen bed",
+			"spaceType": "ROOM",
+			"subtype": "GUEST_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011",
+			"rateTypeId": "507f1f77bcf86cd799439020"
+		},
+		{
+			"name": "Executive Boardroom",
+			"code": "BRD-EXEC",
+			"description": "Premium boardroom for executive meetings with video conferencing",
+			"spaceType": "ROOM",
+			"subtype": "CONFERENCE_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Conference Room A",
+			"code": "CFR-A",
+			"description": "Medium-sized conference room for team meetings",
+			"spaceType": "ROOM",
+			"subtype": "CONFERENCE_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Private Office",
+			"code": "OFF-PVT",
+			"description": "Private office space with desk and chair",
+			"spaceType": "ROOM",
+			"subtype": "OFFICE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Photography Studio",
+			"code": "STD-PHOTO",
+			"description": "Professional photography studio with lighting equipment",
+			"spaceType": "ROOM",
+			"subtype": "STUDIO",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Training Classroom",
+			"code": "CLS-TRN",
+			"description": "Classroom for training sessions and workshops",
+			"spaceType": "ROOM",
+			"subtype": "CLASSROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Grand Ballroom",
+			"code": "BLR-GRAND",
+			"description": "Large ballroom for events and banquets",
+			"spaceType": "ROOM",
+			"subtype": "BALLROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Presidential Suite",
+			"code": "STE-PRES",
+			"description": "Luxurious multi-room suite with living area and kitchen",
+			"spaceType": "ROOM",
+			"subtype": "SUITE",
+			"organizationId": "507f1f77bcf86cd799439011",
+			"rateTypeId": "507f1f77bcf86cd799439020"
+		},
+		{
+			"name": "Family Suite",
+			"code": "STE-FAM",
+			"description": "Spacious suite perfect for families",
+			"spaceType": "ROOM",
+			"subtype": "SUITE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Indoor Tennis Court",
+			"code": "TEN-IN",
+			"description": "Professional indoor tennis court with hardcourt surface",
+			"spaceType": "COURT",
+			"subtype": "TENNIS",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Outdoor Tennis Court",
+			"code": "TEN-OUT",
+			"description": "Outdoor tennis court with clay surface",
+			"spaceType": "COURT",
+			"subtype": "TENNIS",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Basketball Court",
+			"code": "BKB-STD",
+			"description": "Standard basketball court with hardwood floor",
+			"spaceType": "COURT",
+			"subtype": "BASKETBALL",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Volleyball Court",
+			"code": "VLB-BEACH",
+			"description": "Beach volleyball court with sand surface",
+			"spaceType": "COURT",
+			"subtype": "VOLLEYBALL",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Badminton Court",
+			"code": "BDM-STD",
+			"description": "Indoor badminton court",
+			"spaceType": "COURT",
+			"subtype": "BADMINTON",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Squash Court",
+			"code": "SQH-STD",
+			"description": "Professional squash court",
+			"spaceType": "COURT",
+			"subtype": "SQUASH",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Racquetball Court",
+			"code": "RCB-STD",
+			"description": "Indoor racquetball court",
+			"spaceType": "COURT",
+			"subtype": "RACQUETBALL",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Pickleball Court",
+			"code": "PKB-STD",
+			"description": "Outdoor pickleball court",
+			"spaceType": "COURT",
+			"subtype": "PICKLEBALL",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Multi-Purpose Sport Court",
+			"code": "SPT-MULTI",
+			"description": "Versatile court for multiple sports activities",
+			"spaceType": "COURT",
+			"subtype": "MULTIPURPOSE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Coastal Fine Dining",
+			"code": "DINE-FINE",
+			"description": "Upscale fine dining restaurant with ocean views",
+			"spaceType": "DINING",
+			"subtype": "FINE_DINING",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Casual Bistro",
+			"code": "DINE-CAS",
+			"description": "Relaxed casual dining restaurant",
+			"spaceType": "DINING",
+			"subtype": "CASUAL_DINING",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Coffee Shop",
+			"code": "CAFE-MAIN",
+			"description": "Cozy coffee shop with pastries and light meals",
+			"spaceType": "DINING",
+			"subtype": "CAFE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Sky Bar",
+			"code": "BAR-SKY",
+			"description": "Rooftop bar with cocktails and small plates",
+			"spaceType": "DINING",
+			"subtype": "BAR",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Executive Lounge",
+			"code": "LNG-EXEC",
+			"description": "Exclusive lounge for VIP guests",
+			"spaceType": "DINING",
+			"subtype": "LOUNGE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Breakfast Buffet",
+			"code": "BUF-BRK",
+			"description": "All-you-can-eat breakfast buffet",
+			"spaceType": "DINING",
+			"subtype": "BUFFET",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Private Dining Room",
+			"code": "DINE-PVT",
+			"description": "Intimate private dining room for special occasions",
+			"spaceType": "DINING",
+			"subtype": "PRIVATE_DINING",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Food Court",
+			"code": "FOOD-CT",
+			"description": "Food court with multiple vendors",
+			"spaceType": "DINING",
+			"subtype": "FOOD_COURT",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Main Fitness Center",
+			"code": "FIT-MAIN",
+			"description": "Comprehensive fitness center with weights and cardio equipment",
+			"spaceType": "FITNESS",
+			"subtype": "WEIGHT_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Cardio Zone",
+			"code": "FIT-CARD",
+			"description": "Dedicated cardio area with treadmills and ellipticals",
+			"spaceType": "FITNESS",
+			"subtype": "CARDIO_AREA",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Yoga Studio",
+			"code": "FIT-YOGA",
+			"description": "Peaceful yoga studio with mats and props",
+			"spaceType": "FITNESS",
+			"subtype": "YOGA_STUDIO",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Spin Studio",
+			"code": "FIT-SPIN",
+			"description": "Indoor cycling studio with spin bikes",
+			"spaceType": "FITNESS",
+			"subtype": "SPIN_STUDIO",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "CrossFit Box",
+			"code": "FIT-CF",
+			"description": "CrossFit training facility with functional equipment",
+			"spaceType": "FITNESS",
+			"subtype": "CROSSFIT_BOX",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Pilates Studio",
+			"code": "FIT-PIL",
+			"description": "Pilates studio with reformers and mats",
+			"spaceType": "FITNESS",
+			"subtype": "PILATES_STUDIO",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Multi-Purpose Fitness Room",
+			"code": "FIT-MULTI",
+			"description": "Versatile fitness space for various activities",
+			"spaceType": "FITNESS",
+			"subtype": "MULTIPURPOSE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Covered Parking",
+			"code": "PRK-COV",
+			"description": "Covered parking spaces",
+			"spaceType": "PARKING",
+			"subtype": "COVERED",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Open Parking Lot",
+			"code": "PRK-OPEN",
+			"description": "Open-air parking lot",
+			"spaceType": "PARKING",
+			"subtype": "OPEN_LOT",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Underground Garage",
+			"code": "PRK-GRG",
+			"description": "Underground parking garage",
+			"spaceType": "PARKING",
+			"subtype": "GARAGE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Valet Parking",
+			"code": "PRK-VLT",
+			"description": "Valet parking service",
+			"spaceType": "PARKING",
+			"subtype": "VALET",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "EV Charging Station",
+			"code": "PRK-EV",
+			"description": "Electric vehicle charging parking spaces",
+			"spaceType": "PARKING",
+			"subtype": "EV_CHARGING",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Disabled Parking",
+			"code": "PRK-DIS",
+			"description": "Accessible parking spaces for disabled guests",
+			"spaceType": "PARKING",
+			"subtype": "DISABLED",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Motorcycle Parking",
+			"code": "PRK-MCY",
+			"description": "Designated motorcycle parking area",
+			"spaceType": "PARKING",
+			"subtype": "MOTORCYCLE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Bicycle Parking",
+			"code": "PRK-BIC",
+			"description": "Bicycle parking racks",
+			"spaceType": "PARKING",
+			"subtype": "BICYCLE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Rooftop Infinity Pool",
+			"code": "AMN-POOL",
+			"description": "Stunning rooftop infinity pool with bar service",
+			"spaceType": "AMENITY",
+			"subtype": "SWIMMING_POOL",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Hot Tub",
+			"code": "AMN-HOT",
+			"description": "Relaxing hot tub area",
+			"spaceType": "AMENITY",
+			"subtype": "HOT_TUB",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Sauna",
+			"code": "AMN-SAUN",
+			"description": "Traditional Finnish sauna",
+			"spaceType": "AMENITY",
+			"subtype": "SAUNA",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Steam Room",
+			"code": "AMN-STEAM",
+			"description": "Steam room for relaxation",
+			"spaceType": "AMENITY",
+			"subtype": "STEAM_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Full Service Spa",
+			"code": "AMN-SPA",
+			"description": "Complete spa facility with treatment rooms",
+			"spaceType": "AMENITY",
+			"subtype": "SPA",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Library",
+			"code": "AMN-LIB",
+			"description": "Quiet library with reading areas",
+			"spaceType": "AMENITY",
+			"subtype": "LIBRARY",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Business Center",
+			"code": "AMN-BIZ",
+			"description": "Business center with computers and printers",
+			"spaceType": "AMENITY",
+			"subtype": "BUSINESS_CENTER",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Game Room",
+			"code": "AMN-GAME",
+			"description": "Entertainment room with games and pool table",
+			"spaceType": "AMENITY",
+			"subtype": "GAME_ROOM",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Guest Lounge",
+			"code": "AMN-LNG",
+			"description": "Comfortable guest lounge area",
+			"spaceType": "AMENITY",
+			"subtype": "LOUNGE",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Rooftop Terrace",
+			"code": "AMN-RFT",
+			"description": "Rooftop terrace with panoramic views",
+			"spaceType": "AMENITY",
+			"subtype": "ROOFTOP",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Garden Area",
+			"code": "AMN-GDN",
+			"description": "Beautiful garden space for relaxation",
+			"spaceType": "AMENITY",
+			"subtype": "GARDEN",
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Garden Terrace",
+			"code": "OUT-GDN",
+			"description": "Outdoor garden terrace with seating",
+			"spaceType": "OUTDOOR",
+			"subtype": null,
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Patio Area",
+			"code": "OUT-PAT",
+			"description": "Outdoor patio for dining and events",
+			"spaceType": "OUTDOOR",
+			"subtype": null,
+			"organizationId": "507f1f77bcf86cd799439011"
+		},
+		{
+			"name": "Custom Space",
+			"code": "OTH-CUST",
+			"description": "Custom facility space",
+			"spaceType": "OTHER",
+			"subtype": null,
+			"organizationId": "507f1f77bcf86cd799439011"
+		}
+	],
+	"notes": {
+		"organizationId": "Replace '507f1f77bcf86cd799439011' with your actual organization ID",
+		"rateTypeId": "Replace '507f1f77bcf86cd799439020' with your actual rate type ID (optional field)",
+		"requiredFields": ["name", "spaceType", "organizationId"],
+		"optionalFields": ["code", "description", "subtype", "rateTypeId", "path"],
+		"subtypeNotes": {
+			"ROOM": "subtype can be: GUEST_ROOM, CONFERENCE_ROOM, OFFICE, STUDIO, CLASSROOM, BALLROOM, SUITE, OTHER",
+			"COURT": "subtype can be: TENNIS, BASKETBALL, VOLLEYBALL, BADMINTON, SQUASH, RACQUETBALL, PICKLEBALL, MULTIPURPOSE, OTHER",
+			"DINING": "subtype can be: FINE_DINING, CASUAL_DINING, CAFE, BAR, LOUNGE, BUFFET, PRIVATE_DINING, FOOD_COURT, OTHER",
+			"FITNESS": "subtype can be: WEIGHT_ROOM, CARDIO_AREA, YOGA_STUDIO, SPIN_STUDIO, CROSSFIT_BOX, PILATES_STUDIO, MULTIPURPOSE, OTHER",
+			"PARKING": "subtype can be: COVERED, OPEN_LOT, GARAGE, VALET, EV_CHARGING, DISABLED, MOTORCYCLE, BICYCLE, OTHER",
+			"AMENITY": "subtype can be: SWIMMING_POOL, HOT_TUB, SAUNA, STEAM_ROOM, SPA, LIBRARY, BUSINESS_CENTER, GAME_ROOM, LOUNGE, ROOFTOP, GARDEN, OTHER",
+			"OUTDOOR": "subtype is typically null",
+			"OTHER": "subtype is typically null"
+		}
+	}
+}

@@ -12,13 +12,43 @@ import {
 import { buildSuccessResponse, buildPagination } from "../../helper/success-handler";
 import { groupDataByField } from "../../helper/dataGrouping";
 import { buildErrorResponse, formatZodErrors } from "../../helper/error-handler";
-import { CreateFacilitySchema, UpdateFacilitySchema } from "../../zod/facility.zod";
+import {
+	CreateFacilitySchema,
+	UpdateFacilitySchema,
+	validateFacilityMetadata,
+} from "../../zod/facility.zod";
 import { logActivity } from "../../utils/activityLogger";
 import { logAudit } from "../../utils/auditLogger";
 import { DEFAULT_BLOCKING_STATUSES } from "../../helper/reservation-availability";
 import { config } from "../../config/constant";
 import { redisClient } from "../../config/redis";
 import { invalidateCache } from "../../middleware/cache";
+import {
+	uploadMultipleToCloudinary,
+	deleteMultipleFromCloudinary,
+	extractPublicIdFromUrl,
+} from "../../helper/cloudinary-upload";
+import { FacilityImageType } from "../../zod/facilityType.zod";
+
+// Map multipart field names to FacilityImageType enum values
+const FACILITY_IMAGE_TYPE_MAP: Record<string, FacilityImageType> = {
+	coverImages: "COVER",
+	featuredImages: "FEATURED",
+	galleryImages: "GALLERY",
+	thumbnailImages: "THUMBNAIL",
+	floorPlanImages: "FLOOR_PLAN",
+	exteriorImages: "EXTERIOR",
+	interiorImages: "INTERIOR",
+	amenityImages: "AMENITY",
+	images: "GALLERY", // fallback for generic images
+};
+
+// Structure for uploaded image info for Facility
+interface FacilityUploadedImageInfo {
+	name: string;
+	url: string;
+	type: FacilityImageType;
+}
 
 const logger = getLogger();
 const facilityLogger = logger.child({ module: "facility" });
@@ -40,6 +70,60 @@ export const controller = (prisma: PrismaClient) => {
 			);
 		}
 
+		// Handle image uploads if files are present (multipart/form-data)
+		let facilityImages: FacilityUploadedImageInfo[] = [];
+		if (req.files && Object.keys(req.files as any).length > 0) {
+			try {
+				const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+				// Count total images for logging
+				let totalImages = 0;
+				for (const fieldName of Object.keys(FACILITY_IMAGE_TYPE_MAP)) {
+					const fieldFiles = files[fieldName] || [];
+					totalImages += fieldFiles.length;
+				}
+
+				facilityLogger.info(`Processing ${totalImages} uploaded facility images`);
+
+				// Process each image type field
+				for (const [fieldName, imageType] of Object.entries(FACILITY_IMAGE_TYPE_MAP)) {
+					const fieldFiles = files[fieldName] || [];
+					if (fieldFiles.length === 0) continue;
+
+					const uploadResults = await uploadMultipleToCloudinary(fieldFiles, {
+						folder: `facilities/${requestData.organizationId || "default"}/${imageType.toLowerCase()}`,
+					});
+
+					for (let index = 0; index < uploadResults.length; index++) {
+						const result = uploadResults[index];
+						if (result.success && result.secureUrl) {
+							const originalName =
+								fieldFiles[index].originalname ||
+								`${imageType.toLowerCase()}-${index + 1}`;
+							const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "");
+
+							facilityImages.push({
+								name: nameWithoutExtension,
+								url: result.secureUrl,
+								type: imageType,
+							});
+						}
+					}
+
+					facilityLogger.info(
+						`Successfully uploaded ${facilityImages.length} facility images (so far) to Cloudinary`,
+					);
+				}
+			} catch (uploadError: any) {
+				facilityLogger.error(`Error uploading facility images: ${uploadError.message}`);
+				const errorResponse = buildErrorResponse("Failed to upload images", 500, [
+					{ field: "images", message: uploadError.message },
+				]);
+				res.status(500).json(errorResponse);
+				return;
+			}
+		}
+
 		const validation = CreateFacilitySchema.safeParse(requestData);
 		if (!validation.success) {
 			const formattedErrors = formatZodErrors(validation.error.format());
@@ -50,7 +134,69 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			const facility = await prisma.facility.create({ data: validation.data });
+			// Fetch facilityType to get spaceType and subtype for metadata validation
+			const facilityType = await prisma.facilityType.findUnique({
+				where: { id: validation.data.facilityTypeId },
+				select: { spaceType: true, subtype: true },
+			});
+
+			if (!facilityType) {
+				const errorResponse = buildErrorResponse("FacilityType not found", 404, [
+					{
+						field: "facilityTypeId",
+						message: "The specified facilityType does not exist",
+					},
+				]);
+				res.status(404).json(errorResponse);
+				return;
+			}
+
+			// Validate metadata if provided
+			let processedMetadata = validation.data.metadata;
+			if (processedMetadata !== undefined) {
+				// Handle metadata if it's a string (from form data)
+				if (typeof processedMetadata === "string") {
+					try {
+						processedMetadata = JSON.parse(processedMetadata);
+					} catch (error) {
+						const errorResponse = buildErrorResponse("Invalid metadata format", 400, [
+							{ field: "metadata", message: "Failed to parse metadata JSON" },
+						]);
+						res.status(400).json(errorResponse);
+						return;
+					}
+				}
+
+				// Validate metadata based on facilityType's spaceType and subtype
+				const metadataValidation = validateFacilityMetadata(
+					processedMetadata,
+					facilityType.spaceType,
+					facilityType.subtype || null,
+				);
+
+				if (!metadataValidation.success) {
+					const errorResponse = buildErrorResponse("Metadata validation failed", 400, [
+						{
+							field: "metadata",
+							message: metadataValidation.error || "Invalid metadata",
+							...(metadataValidation.requirements && {
+								requirements: metadataValidation.requirements,
+							}),
+						},
+					]);
+					res.status(400).json(errorResponse);
+					return;
+				}
+			}
+
+			const facility = await prisma.facility.create({
+				// Cast to any for now because Prisma client types may not yet include the new "images" field
+				data: {
+					...validation.data,
+					metadata: processedMetadata,
+					images: facilityImages.length > 0 ? facilityImages : [],
+				} as any,
+			});
 			facilityLogger.info(`Facility created successfully: ${facility.id}`);
 
 			logActivity(req, {
@@ -102,7 +248,12 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Handle unique constraint violation
 			if (error.code === "P2002") {
-				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const target = error.meta?.target;
+				const fields = Array.isArray(target)
+					? target
+					: typeof target === "string"
+						? [target]
+						: ["organizationId", "identifier"];
 				const errorResponse = buildErrorResponse(
 					`A facility with this ${fields.join(" and ")} already exists in this organization`,
 					409,
@@ -297,9 +448,24 @@ export const controller = (prisma: PrismaClient) => {
 	};
 
 	const getAvailable = async (req: Request, res: Response, _next: NextFunction) => {
-		const { startDateTime, endDateTime } = req.query;
-		const limit = Math.min(parseInt((req.query.limit as string) || "50", 10), 200);
-		const skip = parseInt((req.query.skip as string) || "0", 10);
+		const { startDateTime, endDateTime, filter, pagination, count, page, limit, skip } =
+			req.query;
+
+		// Parse pagination parameters
+		const limitValue = Math.min(
+			parseInt((limit as string) || (req.query.limit as string) || "50", 10),
+			200,
+		);
+		const skipValue = skip
+			? parseInt(skip as string, 10)
+			: page
+				? (parseInt(page as string, 10) - 1) * limitValue
+				: parseInt((req.query.skip as string) || "0", 10);
+		const pageValue = page
+			? parseInt(page as string, 10)
+			: Math.floor(skipValue / limitValue) + 1;
+		const paginationValue = pagination === "true";
+		const countValue = count === "true";
 
 		if (
 			!startDateTime ||
@@ -315,10 +481,10 @@ export const controller = (prisma: PrismaClient) => {
 			return;
 		}
 
-		const start = new Date(startDateTime);
-		const end = new Date(endDateTime);
+		const originalStart = new Date(startDateTime);
+		const originalEnd = new Date(endDateTime);
 
-		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+		if (isNaN(originalStart.getTime()) || isNaN(originalEnd.getTime())) {
 			const errorResponse = buildErrorResponse(
 				"Invalid date format for startDateTime or endDateTime",
 				400,
@@ -326,6 +492,16 @@ export const controller = (prisma: PrismaClient) => {
 			res.status(400).json(errorResponse);
 			return;
 		}
+
+		// Adjust dates for Philippine Time (subtract 8 hours from UTC)
+		const start = new Date(originalStart);
+		const end = new Date(originalEnd);
+		start.setHours(start.getHours() - 8);
+		end.setHours(end.getHours() - 8);
+
+		facilityLogger.info(
+			`Adjusted date times for Philippine Time: original startDateTime=${originalStart.toISOString()}, adjusted=${start.toISOString()}, original endDateTime=${originalEnd.toISOString()}, adjusted=${end.toISOString()}`,
+		);
 
 		if (end <= start) {
 			const errorResponse = buildErrorResponse(
@@ -337,38 +513,100 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			const facilities = await prisma.facility.findMany({
-				where: {
-					reservations: {
-						none: {
-							status: { in: DEFAULT_BLOCKING_STATUSES },
-							bookingPeriod: {
-								is: {
-									startDateTime: { lt: end },
-									endDateTime: { gt: start },
-								},
+			// Build base where clause for availability check
+			const availabilityCondition: Prisma.FacilityWhereInput = {
+				reservations: {
+					none: {
+						status: { in: DEFAULT_BLOCKING_STATUSES },
+						bookingPeriod: {
+							is: {
+								startDateTime: { lt: end },
+								endDateTime: { gt: start },
 							},
 						},
 					},
 				},
-				include: {
-					location: true,
-					facilityType: true,
-				},
-				take: limit,
-				skip,
-			});
+			};
 
-			const responseData = {
+			// Build where clause - combine availability with filters if provided
+			let whereClause: Prisma.FacilityWhereInput;
+
+			if (filter && typeof filter === "string") {
+				const filterConditions = buildFilterConditions("Facility", filter);
+				if (filterConditions.length > 0) {
+					// Combine availability check with filter conditions using AND
+					whereClause = {
+						AND: [availabilityCondition, ...filterConditions],
+					};
+				} else {
+					whereClause = availabilityCondition;
+				}
+			} else {
+				whereClause = availabilityCondition;
+			}
+
+			// Fetch facilities and count in parallel when needed
+			const [facilities, total] = await Promise.all([
+				prisma.facility.findMany({
+					where: whereClause,
+					include: {
+						location: true,
+						facilityType: {
+							include: {
+								rateType: true,
+							},
+						},
+					},
+					take: limitValue,
+					skip: skipValue,
+				}),
+				countValue ? prisma.facility.count({ where: whereClause }) : Promise.resolve(0),
+			]);
+
+			// Build response data - use original dates in window to show what user requested
+			const responseData: Record<string, any> = {
 				availableFacilities: facilities,
-				window: { startDateTime: start.toISOString(), endDateTime: end.toISOString() },
+				window: {
+					startDateTime: originalStart.toISOString(),
+					endDateTime: originalEnd.toISOString(),
+					// Include adjusted times for verification (adjusted for Philippine Time)
+					adjustedStartDateTime: start.toISOString(),
+					adjustedEndDateTime: end.toISOString(),
+				},
+				...(countValue && { count: total }),
+				...(paginationValue && {
+					pagination: buildPagination(total, pageValue, limitValue),
+				}),
 			};
 
 			res.status(200).json(
 				buildSuccessResponse(config.SUCCESS.FACILITY.RETRIEVED_ALL, responseData, 200),
 			);
-		} catch (error) {
+		} catch (error: any) {
 			facilityLogger.error(`Failed to get available facilities: ${error}`);
+
+			// Check if it's a Prisma connection error
+			if (
+				error?.code === "P1001" ||
+				error?.message?.includes("fatal alert") ||
+				error?.message?.includes("InternalError")
+			) {
+				facilityLogger.error("Database connection error detected");
+				const errorResponse = buildErrorResponse(
+					"Database connection error. Please try again later.",
+					503,
+					[
+						{
+							field: "database",
+							message:
+								"Unable to connect to the database. The service may be temporarily unavailable.",
+						},
+					],
+				);
+				res.status(503).json(errorResponse);
+				return;
+			}
+
 			res.status(500).json(
 				buildErrorResponse(config.ERROR.COMMON.INTERNAL_SERVER_ERROR, 500),
 			);
@@ -386,7 +624,163 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			const validationResult = UpdateFacilitySchema.safeParse(req.body);
+			let requestData = req.body;
+			const contentType = req.get("Content-Type") || "";
+
+			if (
+				contentType.includes("application/x-www-form-urlencoded") ||
+				contentType.includes("multipart/form-data")
+			) {
+				facilityLogger.info("Original form data:", JSON.stringify(req.body, null, 2));
+				requestData = transformFormDataToObject(req.body);
+				facilityLogger.info(
+					"Transformed form data to object structure:",
+					JSON.stringify(requestData, null, 2),
+				);
+			}
+
+			// Get existing facility to compare images
+			const existingFacility = await prisma.facility.findFirst({
+				where: { id },
+				include: { facilityType: { select: { spaceType: true, subtype: true } } },
+			});
+
+			if (!existingFacility) {
+				facilityLogger.error(`${config.ERROR.FACILITY.NOT_FOUND}: ${id}`);
+				const errorResponse = buildErrorResponse(config.ERROR.FACILITY.NOT_FOUND, 404);
+				res.status(404).json(errorResponse);
+				return;
+			}
+
+			// Handle image uploads if files are present
+			let uploadedImages: FacilityUploadedImageInfo[] = [];
+			if (req.files && Object.keys(req.files as any).length > 0) {
+				try {
+					const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+					// Count total images for logging
+					let totalImages = 0;
+					for (const fieldName of Object.keys(FACILITY_IMAGE_TYPE_MAP)) {
+						const fieldFiles = files[fieldName] || [];
+						totalImages += fieldFiles.length;
+					}
+
+					facilityLogger.info(
+						`Processing ${totalImages} uploaded facility images for update`,
+					);
+
+					// Get organizationId from existing record or request
+					const organizationId =
+						requestData.organizationId || existingFacility.organizationId || "default";
+
+					// Process each image type field
+					for (const [fieldName, imageType] of Object.entries(FACILITY_IMAGE_TYPE_MAP)) {
+						const fieldFiles = files[fieldName] || [];
+						if (fieldFiles.length === 0) continue;
+
+						const uploadResults = await uploadMultipleToCloudinary(fieldFiles, {
+							folder: `facilities/${organizationId}/${imageType.toLowerCase()}`,
+						});
+
+						for (let index = 0; index < uploadResults.length; index++) {
+							const result = uploadResults[index];
+							if (result.success && result.secureUrl) {
+								const originalName =
+									fieldFiles[index].originalname ||
+									`${imageType.toLowerCase()}-${index + 1}`;
+								const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "");
+
+								uploadedImages.push({
+									name: nameWithoutExtension,
+									url: result.secureUrl,
+									type: imageType,
+								});
+							}
+						}
+
+						facilityLogger.info(
+							`Successfully uploaded ${uploadResults.filter((r) => r.success).length} ${imageType} images to Cloudinary`,
+						);
+					}
+				} catch (uploadError: any) {
+					facilityLogger.error(`Error uploading facility images: ${uploadError.message}`);
+					const errorResponse = buildErrorResponse("Failed to upload images", 500, [
+						{ field: "images", message: uploadError.message },
+					]);
+					res.status(500).json(errorResponse);
+					return;
+				}
+			}
+
+			// Handle image deletion: compare existing images with new images from request
+			const existingImages = (existingFacility.images as FacilityUploadedImageInfo[]) || [];
+			let imagesToKeep: FacilityUploadedImageInfo[] = existingImages;
+			let deletedImages: string[] = [];
+
+			// If images field is provided in request, check for removed images
+			if (requestData.images !== undefined) {
+				const newImagesFromRequest = Array.isArray(requestData.images)
+					? requestData.images
+					: typeof requestData.images === "string"
+						? JSON.parse(requestData.images)
+						: [];
+				const newImageUrls = new Set(
+					newImagesFromRequest.map((img: FacilityUploadedImageInfo) => img.url),
+				);
+
+				// Find images to delete (in existing but not in new list)
+				const imagesToDelete = existingImages.filter(
+					(img) => img.url && !newImageUrls.has(img.url),
+				);
+
+				if (imagesToDelete.length > 0) {
+					facilityLogger.info(
+						`Found ${imagesToDelete.length} images to delete from Cloudinary`,
+					);
+
+					// Extract public IDs from URLs and delete from Cloudinary
+					const publicIds = imagesToDelete
+						.map((img) => (img.url ? extractPublicIdFromUrl(img.url) : null))
+						.filter((id): id is string => id !== null);
+
+					if (publicIds.length > 0) {
+						try {
+							const deleteResult = await deleteMultipleFromCloudinary(publicIds);
+							deletedImages = deleteResult.deleted;
+							facilityLogger.info(
+								`Deleted ${deleteResult.deleted.length} images from Cloudinary`,
+								{
+									deleted: deleteResult.deleted,
+									failed: deleteResult.failed,
+								},
+							);
+						} catch (deleteError: any) {
+							facilityLogger.warn(
+								`Error deleting images from Cloudinary: ${deleteError.message}`,
+							);
+							// Continue with update even if deletion fails
+						}
+					}
+				}
+
+				// Keep only the images that are in the new list
+				imagesToKeep = newImagesFromRequest;
+			}
+
+			// Add newly uploaded images to the list
+			if (uploadedImages.length > 0) {
+				imagesToKeep = [...imagesToKeep, ...uploadedImages];
+				facilityLogger.info("Added newly uploaded images:", {
+					existingCount: imagesToKeep.length - uploadedImages.length,
+					uploadedCount: uploadedImages.length,
+					totalCount: imagesToKeep.length,
+				});
+			}
+
+			// Update request data with final images list
+			requestData.images = imagesToKeep;
+
+			const validationResult = UpdateFacilitySchema.safeParse(requestData);
 
 			if (!validationResult.success) {
 				const formattedErrors = formatZodErrors(validationResult.error.format());
@@ -396,7 +790,10 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			if (Object.keys(req.body).length === 0) {
+			// Check if there's actually data to update (body or files)
+			const hasBodyData = Object.keys(requestData).length > 0;
+			const hasFiles = req.files && Object.keys(req.files as any).length > 0;
+			if (!hasBodyData && !hasFiles) {
 				facilityLogger.error(config.ERROR.COMMON.NO_UPDATE_FIELDS);
 				const errorResponse = buildErrorResponse(config.ERROR.COMMON.NO_UPDATE_FIELDS, 400);
 				res.status(400).json(errorResponse);
@@ -407,22 +804,75 @@ export const controller = (prisma: PrismaClient) => {
 
 			facilityLogger.info(`Updating facility: ${id}`);
 
-			const existingFacility = await prisma.facility.findFirst({
-				where: { id },
-			});
+			// Handle metadata validation if metadata is being updated
+			let processedMetadata = validatedData.metadata;
+			if (processedMetadata !== undefined) {
+				// Handle metadata if it's a string (from form data)
+				if (typeof processedMetadata === "string") {
+					try {
+						processedMetadata = JSON.parse(processedMetadata);
+					} catch (error) {
+						const errorResponse = buildErrorResponse("Invalid metadata format", 400, [
+							{ field: "metadata", message: "Failed to parse metadata JSON" },
+						]);
+						res.status(400).json(errorResponse);
+						return;
+					}
+				}
 
-			if (!existingFacility) {
-				facilityLogger.error(`${config.ERROR.FACILITY.NOT_FOUND}: ${id}`);
-				const errorResponse = buildErrorResponse(config.ERROR.FACILITY.NOT_FOUND, 404);
-				res.status(404).json(errorResponse);
-				return;
+				// Get facilityType for validation (use new facilityTypeId if provided, otherwise existing)
+				const facilityTypeIdToUse =
+					validatedData.facilityTypeId || existingFacility.facilityTypeId;
+				const facilityType = await prisma.facilityType.findUnique({
+					where: { id: facilityTypeIdToUse },
+					select: { spaceType: true, subtype: true },
+				});
+
+				if (!facilityType) {
+					const errorResponse = buildErrorResponse("FacilityType not found", 404, [
+						{
+							field: "facilityTypeId",
+							message: "The specified facilityType does not exist",
+						},
+					]);
+					res.status(404).json(errorResponse);
+					return;
+				}
+
+				// Validate metadata based on facilityType's spaceType and subtype
+				const metadataValidation = validateFacilityMetadata(
+					processedMetadata,
+					facilityType.spaceType,
+					facilityType.subtype || null,
+				);
+
+				if (!metadataValidation.success) {
+					const errorResponse = buildErrorResponse("Metadata validation failed", 400, [
+						{
+							field: "metadata",
+							message: metadataValidation.error || "Invalid metadata",
+							...(metadataValidation.requirements && {
+								requirements: metadataValidation.requirements,
+							}),
+						},
+					]);
+					res.status(400).json(errorResponse);
+					return;
+				}
 			}
 
 			const prismaData = { ...validatedData };
+			if (processedMetadata !== undefined) {
+				prismaData.metadata = processedMetadata;
+			}
+			// Include images in update if they were modified
+			if (requestData.images !== undefined || uploadedImages.length > 0) {
+				(prismaData as any).images = imagesToKeep;
+			}
 
 			const updatedFacility = await prisma.facility.update({
 				where: { id },
-				data: prismaData,
+				data: prismaData as any,
 			});
 
 			try {
@@ -439,7 +889,23 @@ export const controller = (prisma: PrismaClient) => {
 			facilityLogger.info(`${config.SUCCESS.FACILITY.UPDATED}: ${updatedFacility.id}`);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.FACILITY.UPDATED,
-				{ facility: updatedFacility },
+				{
+					facility: updatedFacility,
+					uploadedImages:
+						uploadedImages.length > 0
+							? {
+									count: uploadedImages.length,
+									images: uploadedImages,
+								}
+							: undefined,
+					deletedImages:
+						deletedImages.length > 0
+							? {
+									count: deletedImages.length,
+									publicIds: deletedImages,
+								}
+							: undefined,
+				},
 				200,
 			);
 			res.status(200).json(successResponse);
@@ -448,7 +914,12 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Handle unique constraint violation
 			if (error.code === "P2002") {
-				const fields = error.meta?.target || ["organizationId", "identifier"];
+				const target = error.meta?.target;
+				const fields = Array.isArray(target)
+					? target
+					: typeof target === "string"
+						? [target]
+						: ["organizationId", "identifier"];
 				const errorResponse = buildErrorResponse(
 					`A facility with this ${fields.join(" and ")} already exists in this organization`,
 					409,
@@ -482,7 +953,7 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			facilityLogger.info(`${config.SUCCESS.FACILITY.DELETED}: ${id}`);
+			facilityLogger.info(`Deleting facility: ${id}`);
 
 			const existingFacility = await prisma.facility.findFirst({
 				where: { id },
@@ -495,6 +966,41 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
+			// Delete images from Cloudinary before deleting the facility
+			let deletedImages: string[] = [];
+			const existingImages = (existingFacility.images as FacilityUploadedImageInfo[]) || [];
+
+			if (existingImages.length > 0) {
+				facilityLogger.info(
+					`Deleting ${existingImages.length} images from Cloudinary for facility ${id}`,
+				);
+
+				// Extract public IDs from image URLs
+				const publicIds = existingImages
+					.map((img) => (img.url ? extractPublicIdFromUrl(img.url) : null))
+					.filter((publicId): publicId is string => publicId !== null);
+
+				if (publicIds.length > 0) {
+					try {
+						const deleteResult = await deleteMultipleFromCloudinary(publicIds);
+						deletedImages = deleteResult.deleted;
+						facilityLogger.info(
+							`Deleted ${deleteResult.deleted.length} images from Cloudinary`,
+							{
+								deleted: deleteResult.deleted,
+								failed: deleteResult.failed,
+							},
+						);
+					} catch (deleteError: any) {
+						facilityLogger.warn(
+							`Error deleting images from Cloudinary: ${deleteError.message}`,
+						);
+						// Continue with deletion even if Cloudinary deletion fails
+					}
+				}
+			}
+
+			// Delete the facility from database
 			await prisma.facility.delete({
 				where: { id },
 			});
@@ -511,7 +1017,19 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			facilityLogger.info(`${config.SUCCESS.FACILITY.DELETED}: ${id}`);
-			const successResponse = buildSuccessResponse(config.SUCCESS.FACILITY.DELETED, {}, 200);
+			const successResponse = buildSuccessResponse(
+				config.SUCCESS.FACILITY.DELETED,
+				{
+					deletedImages:
+						deletedImages.length > 0
+							? {
+									count: deletedImages.length,
+									publicIds: deletedImages,
+								}
+							: undefined,
+				},
+				200,
+			);
 			res.status(200).json(successResponse);
 		} catch (error) {
 			facilityLogger.error(`${config.ERROR.FACILITY.DELETE_FAILED}: ${error}`);
