@@ -44,6 +44,7 @@ const ratetype = require("./app/ratetype")(prisma);
 const location = require("./app/location")(prisma);
 const reservation = require("./app/reservation")(prisma);
 const guest = require("./app/guest")(prisma);
+const addon = require("./app/addon")(prisma);
 const docs = require("./app/docs/docs");
 
 app.use(express.json());
@@ -128,6 +129,7 @@ app.use(config.baseApiPath, ratetype);
 app.use(config.baseApiPath, location);
 app.use(config.baseApiPath, reservation);
 app.use(config.baseApiPath, guest);
+app.use(config.baseApiPath, addon);
 app.use(config.baseApiPath, docs(prisma, app));
 
 // Store app instance globally for docs generation after all routes are registered

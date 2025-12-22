@@ -21,46 +21,21 @@ import { logAudit } from "../../utils/auditLogger";
 import { config } from "../../config/constant";
 import { redisClient } from "../../config/redis";
 import { invalidateCache } from "../../middleware/cache";
-import {
-	uploadMultipleToCloudinary,
-	deleteMultipleFromCloudinary,
-	extractPublicIdFromUrl,
-} from "../../helper/cloudinary-upload";
 
 const logger = getLogger();
 const facilityTypeLogger = logger.child({ module: "facilityType" });
 
-// Facility image type values (matching the Prisma schema enum)
-type FacilityImageType =
-	| "COVER"
-	| "FEATURED"
-	| "GALLERY"
-	| "THUMBNAIL"
-	| "FLOOR_PLAN"
-	| "EXTERIOR"
-	| "INTERIOR"
-	| "AMENITY"
-	| "OTHER";
-
-// Map field names to FacilityImageType values
-const IMAGE_TYPE_MAP: Record<string, FacilityImageType> = {
-	coverImages: "COVER",
-	featuredImages: "FEATURED",
-	galleryImages: "GALLERY",
-	thumbnailImages: "THUMBNAIL",
-	floorPlanImages: "FLOOR_PLAN",
-	exteriorImages: "EXTERIOR",
-	interiorImages: "INTERIOR",
-	amenityImages: "AMENITY",
-	images: "GALLERY", // Default fallback for generic images
+// Helper function to remove images field from facilityType (legacy field)
+const removeImagesField = (facilityType: any) => {
+	if (!facilityType) return facilityType;
+	const { images, ...rest } = facilityType;
+	return rest;
 };
 
-// Structure for uploaded image info (for response)
-interface UploadedImageInfo {
-	name: string;
-	url: string;
-	type: FacilityImageType;
-}
+// Helper function to remove images from array of facilityTypes
+const removeImagesFromArray = (facilityTypes: any[]) => {
+	return facilityTypes.map(removeImagesField);
+};
 
 export const controller = (prisma: PrismaClient) => {
 	const create = async (req: Request, res: Response, _next: NextFunction) => {
@@ -74,66 +49,6 @@ export const controller = (prisma: PrismaClient) => {
 				"Transformed form data to object structure:",
 				JSON.stringify(requestData, null, 2),
 			);
-		}
-
-		// Handle image uploads if files are present
-		let facilityImages: UploadedImageInfo[] = [];
-		if (req.files && Object.keys(req.files as any).length > 0) {
-			try {
-				const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-				// Count total images for logging
-				let totalImages = 0;
-				for (const fieldName of Object.keys(IMAGE_TYPE_MAP)) {
-					const fieldFiles = files[fieldName] || [];
-					totalImages += fieldFiles.length;
-				}
-
-				facilityTypeLogger.info(`Processing ${totalImages} uploaded images`);
-
-				// Process each image type field
-				for (const [fieldName, imageType] of Object.entries(IMAGE_TYPE_MAP)) {
-					const fieldFiles = files[fieldName] || [];
-					if (fieldFiles.length > 0) {
-						const uploadResults = await uploadMultipleToCloudinary(fieldFiles, {
-							folder: `facility-types/${requestData.organizationId || "default"}/${imageType.toLowerCase()}`,
-						});
-
-						// Create image info objects for response and collect URLs for database
-						for (let index = 0; index < uploadResults.length; index++) {
-							const result = uploadResults[index];
-							if (result.success && result.secureUrl) {
-								// Remove file extension from original filename
-								const originalName =
-									fieldFiles[index].originalname ||
-									`${imageType.toLowerCase()}-${index + 1}`;
-								const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "");
-
-								// Add to detailed image info (for database and response)
-								facilityImages.push({
-									name: nameWithoutExtension,
-									url: result.secureUrl,
-									type: imageType,
-								});
-							}
-						}
-
-						facilityTypeLogger.info(
-							`Successfully uploaded ${uploadResults.filter((r) => r.success).length} ${imageType} images to Cloudinary`,
-						);
-					}
-				}
-
-				// Console.log the URLs as requested
-				console.log("Facility type images uploaded to Cloudinary:", facilityImages);
-			} catch (uploadError: any) {
-				facilityTypeLogger.error(`Error uploading images: ${uploadError.message}`);
-				const errorResponse = buildErrorResponse("Failed to upload images", 500, [
-					{ field: "images", message: uploadError.message },
-				]);
-				res.status(500).json(errorResponse);
-				return;
-			}
 		}
 
 		const validation = CreateFacilityTypeSchema.safeParse(requestData);
@@ -173,7 +88,7 @@ export const controller = (prisma: PrismaClient) => {
 				}
 			}
 
-			// Prepare data for Prisma - use images field with FacilityImage structure
+			// Prepare data for Prisma
 			const facilityType = await prisma.facilityType.create({
 				data: {
 					name: validation.data.name,
@@ -182,18 +97,19 @@ export const controller = (prisma: PrismaClient) => {
 					spaceType: validation.data.spaceType,
 					subtype: validation.data.subtype,
 					organizationId: validation.data.organizationId,
-					metadata: validation.data.metadata,
 					rateTypeId: validation.data.rateTypeId,
 					path: validation.data.path,
-					images: facilityImages.length > 0 ? facilityImages : [],
 				},
 			});
 			facilityTypeLogger.info(`FacilityType created successfully: ${facilityType.id}`);
 
+			// Remove images field if it exists (legacy data)
+			const { images, ...facilityTypeWithoutImages } = facilityType as any;
+
 			logActivity(req, {
 				userId: (req as any).user?.id || "unknown",
 				action: config.ACTIVITY_LOG.FACILITYTYPE.ACTIONS.CREATE_FACILITYTYPE,
-				description: `${config.ACTIVITY_LOG.FACILITYTYPE.DESCRIPTIONS.FACILITYTYPE_CREATED}: ${facilityType.name || facilityType.id} with ${facilityImages.length} images`,
+				description: `${config.ACTIVITY_LOG.FACILITYTYPE.DESCRIPTIONS.FACILITYTYPE_CREATED}: ${facilityType.name || facilityType.id}`,
 				page: {
 					url: req.originalUrl,
 					title: config.ACTIVITY_LOG.FACILITYTYPE.PAGES.FACILITYTYPE_CREATION,
@@ -212,11 +128,10 @@ export const controller = (prisma: PrismaClient) => {
 					id: facilityType.id,
 					name: facilityType.name,
 					description: facilityType.description,
-					imageCount: facilityImages.length,
 					createdAt: facilityType.createdAt,
 					updatedAt: facilityType.updatedAt,
 				},
-				description: `${config.AUDIT_LOG.FACILITYTYPE.DESCRIPTIONS.FACILITYTYPE_CREATED}: ${facilityType.name || facilityType.id} with ${facilityImages.length} images`,
+				description: `${config.AUDIT_LOG.FACILITYTYPE.DESCRIPTIONS.FACILITYTYPE_CREATED}: ${facilityType.name || facilityType.id}`,
 			});
 
 			try {
@@ -231,13 +146,7 @@ export const controller = (prisma: PrismaClient) => {
 
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.FACILITYTYPE.CREATED,
-				{
-					...facilityType,
-					uploadedImages: {
-						count: facilityImages.length,
-						images: facilityImages,
-					},
-				},
+				facilityTypeWithoutImages,
 				201,
 			);
 			res.status(201).json(successResponse);
@@ -344,10 +253,14 @@ export const controller = (prisma: PrismaClient) => {
 			]);
 
 			facilityTypeLogger.info(`Retrieved ${facilityTypes.length} facilityTypes`);
+
+			// Remove images field from all facilityTypes
+			const facilityTypesWithoutImages = removeImagesFromArray(facilityTypes);
+
 			const processedData =
 				groupBy && document
-					? groupDataByField(facilityTypes, groupBy as string)
-					: facilityTypes;
+					? groupDataByField(facilityTypesWithoutImages, groupBy as string)
+					: facilityTypesWithoutImages;
 
 			const responseData: Record<string, any> = {
 				...(document && { facilityTypes: processedData }),
@@ -397,11 +310,13 @@ export const controller = (prisma: PrismaClient) => {
 
 			try {
 				if (redisClient.isClientConnected()) {
-					facilityType = await redisClient.getJSON(cacheKey);
-					if (facilityType) {
+					const cachedFacilityType = await redisClient.getJSON(cacheKey);
+					if (cachedFacilityType) {
 						facilityTypeLogger.info(
 							`FacilityType ${id} retrieved from direct Redis cache`,
 						);
+						// Remove images field from cached data
+						facilityType = removeImagesField(cachedFacilityType);
 					}
 				}
 			} catch (cacheError) {
@@ -461,7 +376,9 @@ export const controller = (prisma: PrismaClient) => {
 
 				if (facilityType && redisClient.isClientConnected()) {
 					try {
-						await redisClient.setJSON(cacheKey, facilityType, 3600);
+						// Store without images field in cache
+						const facilityTypeWithoutImages = removeImagesField(facilityType);
+						await redisClient.setJSON(cacheKey, facilityTypeWithoutImages, 3600);
 						facilityTypeLogger.info(`FacilityType ${id} stored in direct Redis cache`);
 					} catch (cacheError) {
 						facilityTypeLogger.warn(
@@ -482,9 +399,10 @@ export const controller = (prisma: PrismaClient) => {
 			facilityTypeLogger.info(
 				`${config.SUCCESS.FACILITYTYPE.RETRIEVED}: ${(facilityType as any).id}`,
 			);
+			const facilityTypeWithoutImages = removeImagesField(facilityType);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.FACILITYTYPE.RETRIEVED,
-				facilityType,
+				facilityTypeWithoutImages,
 				200,
 			);
 			res.status(200).json(successResponse);
@@ -521,81 +439,6 @@ export const controller = (prisma: PrismaClient) => {
 				);
 			}
 
-			// Handle image uploads if files are present
-			let uploadedImages: UploadedImageInfo[] = [];
-			if (req.files && Object.keys(req.files as any).length > 0) {
-				try {
-					const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-					// Count total images for logging
-					let totalImages = 0;
-					for (const fieldName of Object.keys(IMAGE_TYPE_MAP)) {
-						const fieldFiles = files[fieldName] || [];
-						totalImages += fieldFiles.length;
-					}
-
-					facilityTypeLogger.info(`Processing ${totalImages} uploaded images for update`);
-
-					// Get organizationId from existing record or request
-					const existingForOrg = await prisma.facilityType.findFirst({
-						where: { id },
-						select: { organizationId: true },
-					});
-					const organizationId =
-						requestData.organizationId || existingForOrg?.organizationId || "default";
-
-					// Process each image type field
-					for (const [fieldName, imageType] of Object.entries(IMAGE_TYPE_MAP)) {
-						const fieldFiles = files[fieldName] || [];
-						if (fieldFiles.length > 0) {
-							const uploadResults = await uploadMultipleToCloudinary(fieldFiles, {
-								folder: `facility-types/${organizationId}/${imageType.toLowerCase()}`,
-							});
-
-							// Create image info objects for response and collect URLs for database
-							for (let index = 0; index < uploadResults.length; index++) {
-								const result = uploadResults[index];
-								if (result.success && result.secureUrl) {
-									// Remove file extension from original filename
-									const originalName =
-										fieldFiles[index].originalname ||
-										`${imageType.toLowerCase()}-${index + 1}`;
-									const nameWithoutExtension = originalName.replace(
-										/\.[^/.]+$/,
-										"",
-									);
-
-									// Add to detailed image info (for database and response)
-									uploadedImages.push({
-										name: nameWithoutExtension,
-										url: result.secureUrl,
-										type: imageType,
-									});
-								}
-							}
-
-							facilityTypeLogger.info(
-								`Successfully uploaded ${uploadResults.filter((r) => r.success).length} ${imageType} images to Cloudinary`,
-							);
-						}
-					}
-
-					// Console.log the URLs
-					console.log(
-						"Facility type images uploaded to Cloudinary (update):",
-						uploadedImages,
-					);
-				} catch (uploadError: any) {
-					facilityTypeLogger.error(`Error uploading images: ${uploadError.message}`);
-					const errorResponse = buildErrorResponse("Failed to upload images", 500, [
-						{ field: "images", message: uploadError.message },
-					]);
-					res.status(500).json(errorResponse);
-					return;
-				}
-			}
-
-			// Get existing facility type to compare images
 			const existingFacilityType = await prisma.facilityType.findFirst({
 				where: { id },
 			});
@@ -607,73 +450,6 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			const existingImages = (existingFacilityType.images as UploadedImageInfo[]) || [];
-
-			// Handle image deletion: compare existing images with new images from request
-			let imagesToKeep: UploadedImageInfo[] = existingImages;
-			let deletedImages: string[] = [];
-
-			// If images field is provided in request, check for removed images
-			if (requestData.images !== undefined) {
-				const newImagesFromRequest = Array.isArray(requestData.images)
-					? requestData.images
-					: [];
-				const newImageUrls = new Set(
-					newImagesFromRequest.map((img: UploadedImageInfo) => img.url),
-				);
-
-				// Find images to delete (in existing but not in new list)
-				const imagesToDelete = existingImages.filter(
-					(img) => img.url && !newImageUrls.has(img.url),
-				);
-
-				if (imagesToDelete.length > 0) {
-					facilityTypeLogger.info(
-						`Found ${imagesToDelete.length} images to delete from Cloudinary`,
-					);
-
-					// Extract public IDs from URLs and delete from Cloudinary
-					const publicIds = imagesToDelete
-						.map((img) => (img.url ? extractPublicIdFromUrl(img.url) : null))
-						.filter((id): id is string => id !== null);
-
-					if (publicIds.length > 0) {
-						try {
-							const deleteResult = await deleteMultipleFromCloudinary(publicIds);
-							deletedImages = deleteResult.deleted;
-							facilityTypeLogger.info(
-								`Deleted ${deleteResult.deleted.length} images from Cloudinary`,
-								{
-									deleted: deleteResult.deleted,
-									failed: deleteResult.failed,
-								},
-							);
-						} catch (deleteError: any) {
-							facilityTypeLogger.warn(
-								`Error deleting images from Cloudinary: ${deleteError.message}`,
-							);
-							// Continue with update even if deletion fails
-						}
-					}
-				}
-
-				// Keep only the images that are in the new list
-				imagesToKeep = newImagesFromRequest;
-			}
-
-			// Add newly uploaded images to the list
-			if (uploadedImages.length > 0) {
-				imagesToKeep = [...imagesToKeep, ...uploadedImages];
-				facilityTypeLogger.info("Added newly uploaded images:", {
-					existingCount: imagesToKeep.length - uploadedImages.length,
-					uploadedCount: uploadedImages.length,
-					totalCount: imagesToKeep.length,
-				});
-			}
-
-			// Update request data with final images list
-			requestData.images = imagesToKeep;
-
 			const validationResult = UpdateFacilityTypeSchema.safeParse(requestData);
 
 			if (!validationResult.success) {
@@ -684,10 +460,8 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			// Check if there's actually data to update (body or files)
-			const hasBodyData = Object.keys(req.body).length > 0;
-			const hasFiles = req.files && Object.keys(req.files as any).length > 0;
-			if (!hasBodyData && !hasFiles) {
+			// Check if there's actually data to update
+			if (Object.keys(req.body).length === 0) {
 				facilityTypeLogger.error(config.ERROR.COMMON.NO_UPDATE_FIELDS);
 				const errorResponse = buildErrorResponse(config.ERROR.COMMON.NO_UPDATE_FIELDS, 400);
 				res.status(400).json(errorResponse);
@@ -719,25 +493,10 @@ export const controller = (prisma: PrismaClient) => {
 			facilityTypeLogger.info(
 				`${config.SUCCESS.FACILITYTYPE.UPDATED}: ${updatedFacilityType.id}`,
 			);
+			const updatedFacilityTypeWithoutImages = removeImagesField(updatedFacilityType);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.FACILITYTYPE.UPDATED,
-				{
-					facilityType: updatedFacilityType,
-					uploadedImages:
-						uploadedImages.length > 0
-							? {
-									count: uploadedImages.length,
-									images: uploadedImages,
-								}
-							: undefined,
-					deletedImages:
-						deletedImages.length > 0
-							? {
-									count: deletedImages.length,
-									publicIds: deletedImages,
-								}
-							: undefined,
-				},
+				updatedFacilityTypeWithoutImages,
 				200,
 			);
 			res.status(200).json(successResponse);
@@ -775,40 +534,6 @@ export const controller = (prisma: PrismaClient) => {
 				return;
 			}
 
-			// Delete images from Cloudinary before deleting the facilityType
-			let deletedImages: string[] = [];
-			const existingImages = (existingFacilityType.images as UploadedImageInfo[]) || [];
-
-			if (existingImages.length > 0) {
-				facilityTypeLogger.info(
-					`Deleting ${existingImages.length} images from Cloudinary for facilityType ${id}`,
-				);
-
-				// Extract public IDs from image URLs
-				const publicIds = existingImages
-					.map((img) => (img.url ? extractPublicIdFromUrl(img.url) : null))
-					.filter((publicId): publicId is string => publicId !== null);
-
-				if (publicIds.length > 0) {
-					try {
-						const deleteResult = await deleteMultipleFromCloudinary(publicIds);
-						deletedImages = deleteResult.deleted;
-						facilityTypeLogger.info(
-							`Deleted ${deleteResult.deleted.length} images from Cloudinary`,
-							{
-								deleted: deleteResult.deleted,
-								failed: deleteResult.failed,
-							},
-						);
-					} catch (deleteError: any) {
-						facilityTypeLogger.warn(
-							`Error deleting images from Cloudinary: ${deleteError.message}`,
-						);
-						// Continue with deletion even if Cloudinary deletion fails
-					}
-				}
-			}
-
 			// Delete the facilityType from database
 			await prisma.facilityType.delete({
 				where: { id },
@@ -828,15 +553,7 @@ export const controller = (prisma: PrismaClient) => {
 			facilityTypeLogger.info(`${config.SUCCESS.FACILITYTYPE.DELETED}: ${id}`);
 			const successResponse = buildSuccessResponse(
 				config.SUCCESS.FACILITYTYPE.DELETED,
-				{
-					deletedImages:
-						deletedImages.length > 0
-							? {
-									count: deletedImages.length,
-									publicIds: deletedImages,
-								}
-							: undefined,
-				},
+				{},
 				200,
 			);
 			res.status(200).json(successResponse);
