@@ -39,7 +39,7 @@ model Facility {
   displayName     String?         // Optional friendly name
   
   // Organization relationship
-  organizationId  String
+  organizationId  String?
 
   
   // Location details (contains all hierarchical information: building, floor, wing, zone, etc.)

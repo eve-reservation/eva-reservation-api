@@ -38,7 +38,7 @@ export const FacilitySchema = z.object({
 	facilityTypeId: z.string().refine((val) => isValidObjectId(val)),
 	identifier: z.string().min(1),
 	displayName: z.string().optional().nullable(),
-	organizationId: z.string().min(1),
+	organizationId: z.string().min(1).optional().nullable(),
 	locationId: z
 		.string()
 		.refine((val) => isValidObjectId(val))

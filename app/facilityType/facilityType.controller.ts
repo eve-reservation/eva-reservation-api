@@ -244,6 +244,7 @@ export const controller = (prisma: PrismaClient) => {
 							currency: true,
 						},
 					},
+					facilities: true,
 				};
 			}
 
