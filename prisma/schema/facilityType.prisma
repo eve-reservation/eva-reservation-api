@@ -92,11 +92,11 @@ model FacilityType {
   description    String?
 
   // Hierarchical classification
-  spaceType      SpaceType
+  spaceType      SpaceType?
   subtype        String?  // Stores the appropriate subtype enum value as string
 
   // Organization identifier only (organization lives in another service)
-  organizationId String
+  organizationId String?
 
   // Pricing
   rateTypeId     String?  @db.ObjectId

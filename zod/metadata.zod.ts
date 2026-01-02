@@ -284,7 +284,7 @@ export const OtherMetadataSchema = z.object({
  * Returns the required and optional fields for a given spaceType + subtype combination
  */
 export function getMetadataRequirements(
-	spaceType: string,
+	spaceType: string | null | undefined,
 	subtype?: string | null,
 ): {
 	required: string[];
@@ -596,6 +596,10 @@ export function getMetadataRequirements(
 			},
 		},
 	} as any;
+
+	if (!spaceType) {
+		return requirements.OTHER.default;
+	}
 
 	// Handle ROOM space type with specific subtypes
 	if (spaceType === "ROOM" && subtype) {

@@ -82,7 +82,7 @@ export type UpdateTemplate = z.infer<typeof UpdateFacilitySchema>;
  */
 export function validateFacilityMetadata(
 	metadata: any,
-	spaceType: string,
+	spaceType: string | null | undefined,
 	subtype?: string | null,
 ): { success: boolean; error?: string; requirements?: any } {
 	if (!metadata) {
@@ -100,6 +100,10 @@ export function validateFacilityMetadata(
 				error: "Failed to parse metadata JSON",
 			};
 		}
+	}
+
+	if (!spaceType) {
+		return { success: true };
 	}
 
 	// Get the field requirements for error messages
