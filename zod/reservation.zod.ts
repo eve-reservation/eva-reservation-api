@@ -13,7 +13,7 @@ const ReservationStatusEnum = z.enum([
 const ReservationPeriodSchema = z.object({
 	startDateTime: z.coerce.date(),
 	endDateTime: z.coerce.date(),
-	numberOfDays: z.number().int(),
+	numberOfDays: z.number().int().optional(),
 	numberOfHours: z.number().optional(),
 	originalHours: z.number().optional(),
 	extendedHours: z.number().optional(),
