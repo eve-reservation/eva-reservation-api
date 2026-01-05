@@ -9,8 +9,10 @@ jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for unshallow clone
 
             - name: Setup Git
               run: |
@@ -33,11 +35,14 @@ jobs:
                   EOF
                   chmod +x /tmp/git-credential-helper.sh
 
-                  # Configure git to use the custom credential helper
-                  git config --global credential.helper "/tmp/git-credential-helper.sh"
-
-                  # Add Heroku remote manually
-                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
-
-                  # Push to Heroku main branch (same command we used manually)
-                  git push heroku HEAD:main --force
+          # Configure git to use the custom credential helper
+          git config --global credential.helper "/tmp/git-credential-helper.sh"
+          
+          # Unshallow the repository (Heroku requires full clone)
+          git fetch --unshallow || git fetch --all
+          
+          # Add Heroku remote manually
+          git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
+          
+          # Push to Heroku main branch (same command we used manually)
+          git push heroku HEAD:main --force
