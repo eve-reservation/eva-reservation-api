@@ -25,13 +25,18 @@ jobs:
               env:
                   HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
               run: |
-                  # Configure git credential helper BEFORE any git operations
-                  git config --global credential.helper store
-                  mkdir -p ~/.git
-                  echo "https://1bis.solutions.tech@gmail.com:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
-                  chmod 600 ~/.git-credentials
+                  # Create a custom credential helper script that uses the API key
+                  cat > /tmp/git-credential-helper.sh << EOF
+                  #!/bin/bash
+                  echo "username=1bis.solutions.tech@gmail.com"
+                  echo "password=$HEROKU_API_KEY"
+                  EOF
+                  chmod +x /tmp/git-credential-helper.sh
 
-                  # Add Heroku remote manually (avoid heroku git:remote which triggers git auth)
+                  # Configure git to use the custom credential helper
+                  git config --global credential.helper "/tmp/git-credential-helper.sh"
+
+                  # Add Heroku remote manually
                   git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
 
                   # Push to Heroku main branch (same command we used manually)
