@@ -17,25 +17,21 @@ jobs:
                   git config --global user.name "GitHub Actions"
                   git config --global user.email "actions@github.com"
 
-            - name: Add Heroku remote
+            - name: Deploy to Heroku
+              env:
+                  HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
               run: |
-                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || true
+                  # Install Heroku CLI
+                  curl https://cli-assets.heroku.com/install.sh | sh
 
-      - name: Deploy to Heroku
-        env:
-          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-        run: |
-          # Install Heroku CLI
-          curl https://cli-assets.heroku.com/install.sh | sh
-          
-          # Add Heroku remote with API key authentication
-          git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
-          
-          # Configure git to use API key for Heroku authentication
-          echo "machine git.heroku.com" >> ~/.netrc
-          echo "  login $HEROKU_API_KEY" >> ~/.netrc
-          echo "  password x" >> ~/.netrc
-          chmod 600 ~/.netrc
-          
-          # Push to Heroku main branch (this triggers deployment)
-          git push heroku HEAD:main --force
+                  # Add Heroku remote
+                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
+
+                  # Configure git to use API key for Heroku authentication via .netrc
+                  echo "machine git.heroku.com" >> ~/.netrc
+                  echo "  login $HEROKU_API_KEY" >> ~/.netrc
+                  echo "  password x" >> ~/.netrc
+                  chmod 600 ~/.netrc
+
+                  # Push to Heroku main branch (this triggers deployment)
+                  git push heroku HEAD:main --force
