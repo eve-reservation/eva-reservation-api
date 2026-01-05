@@ -21,16 +21,15 @@ jobs:
               run: |
                   curl https://cli-assets.heroku.com/install.sh | sh
 
-            - name: Add Heroku remote and Deploy
+            - name: Authenticate with Heroku and Deploy
               env:
                   HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
               run: |
-                  # Configure git credential helper to use API key
-                  git config --global credential.helper store
-                  echo "https://:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
+                  # Set Heroku API key (CLI will use this automatically)
+                  export HEROKU_API_KEY="$HEROKU_API_KEY"
 
-                  # Add Heroku remote
-                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
+                  # Add Heroku remote using CLI (sets up proper authentication)
+                  heroku git:remote -a reservation-api-dev
 
                   # Push to Heroku main branch (same command we used manually)
                   git push heroku HEAD:main --force
