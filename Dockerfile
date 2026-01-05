@@ -80,12 +80,14 @@ COPY --from=builder /app/docs ./docs
 RUN chown -R nodeuser:nodejs /app
 USER nodeuser
 
-# Expose port
-EXPOSE 3001
+# Expose port (Heroku will set PORT dynamically via environment variable)
+# Using 3000 as default, but Heroku will override with its own PORT
+EXPOSE 3000
 
-# Health check (TCP port check)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('net').connect(process.env.PORT||3001,'localhost').once('connect',()=>process.exit(0)).once('error',()=>process.exit(1))"
+# Health check (TCP port check) - removed for Heroku compatibility
+# Heroku has its own health check mechanism
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+#   CMD node -e "require('net').connect(process.env.PORT||3000,'localhost').once('connect',()=>process.exit(0)).once('error',()=>process.exit(1))"
 
 # Start the application
 CMD ["node", "dist/server.ts"] 
