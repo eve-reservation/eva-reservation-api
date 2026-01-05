@@ -61,33 +61,6 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			if (validation.data.rateTypeId) {
-				let rateType = null;
-				try {
-					rateType = await prisma.rateType.findUnique({
-						where: { id: validation.data.rateTypeId },
-					});
-				} catch (lookupError) {
-					facilityTypeLogger.error(
-						`RateType lookup failed: ${validation.data.rateTypeId}`,
-						lookupError,
-					);
-					const errorResponse = buildErrorResponse("Unable to verify rateType", 503, [
-						{ field: "rateTypeId", message: "Temporary issue verifying rate type" },
-					]);
-					res.status(503).json(errorResponse);
-					return;
-				}
-
-				if (!rateType) {
-					const errorResponse = buildErrorResponse("RateType not found", 400, [
-						{ field: "rateTypeId", message: "RateType does not exist" },
-					]);
-					res.status(400).json(errorResponse);
-					return;
-				}
-			}
-
 			// Prepare data for Prisma
 			const facilityType = await prisma.facilityType.create({
 				data: {
@@ -97,7 +70,6 @@ export const controller = (prisma: PrismaClient) => {
 					spaceType: validation.data.spaceType,
 					subtype: validation.data.subtype,
 					organizationId: validation.data.organizationId,
-					rateTypeId: validation.data.rateTypeId,
 					path: validation.data.path,
 				},
 			});
@@ -207,46 +179,6 @@ export const controller = (prisma: PrismaClient) => {
 			}
 			const findManyQuery = buildFindManyQuery(whereClause, skip, limit, order, sort, fields);
 
-			// Always include rateType relation to get rateUnit
-			// If fields are specified, merge with existing select, otherwise use include
-			if (findManyQuery.select) {
-				// If select is used, ensure rateType is included with rateUnit
-				if (!findManyQuery.select.rateType) {
-					findManyQuery.select.rateType = {
-						select: {
-							id: true,
-							rateUnit: true,
-							name: true,
-							baseRate: true,
-							currency: true,
-						},
-					};
-				} else if (
-					typeof findManyQuery.select.rateType === "object" &&
-					findManyQuery.select.rateType !== null
-				) {
-					// If rateType is already in select as an object, ensure rateUnit is included
-					if (!findManyQuery.select.rateType.select) {
-						findManyQuery.select.rateType.select = {};
-					}
-					findManyQuery.select.rateType.select.rateUnit = true;
-				}
-				// If rateType is true (all fields), rateUnit will be included automatically
-			} else {
-				// If no select, use include
-				findManyQuery.include = {
-					rateType: {
-						select: {
-							id: true,
-							rateUnit: true,
-							name: true,
-							baseRate: true,
-							currency: true,
-						},
-					},
-				};
-			}
-
 			const [facilityTypes, total] = await Promise.all([
 				document ? prisma.facilityType.findMany(findManyQuery) : [],
 				count ? prisma.facilityType.count({ where: whereClause }) : 0,
@@ -332,45 +264,6 @@ export const controller = (prisma: PrismaClient) => {
 				};
 
 				query.select = getNestedFields(fields);
-
-				// Always include rateType relation to get rateUnit
-				if (query.select) {
-					// If select is used, ensure rateType is included with rateUnit
-					if (!query.select.rateType) {
-						query.select.rateType = {
-							select: {
-								id: true,
-								rateUnit: true,
-								name: true,
-								baseRate: true,
-								currency: true,
-							},
-						};
-					} else if (
-						typeof query.select.rateType === "object" &&
-						query.select.rateType !== null
-					) {
-						// If rateType is already in select as an object, ensure rateUnit is included
-						if (!query.select.rateType.select) {
-							query.select.rateType.select = {};
-						}
-						query.select.rateType.select.rateUnit = true;
-					}
-					// If rateType is true (all fields), rateUnit will be included automatically
-				} else {
-					// If no select, use include
-					query.include = {
-						rateType: {
-							select: {
-								id: true,
-								rateUnit: true,
-								name: true,
-								baseRate: true,
-								currency: true,
-							},
-						},
-					};
-				}
 
 				facilityType = await prisma.facilityType.findFirst(query);
 

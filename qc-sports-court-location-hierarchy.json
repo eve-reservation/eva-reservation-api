@@ -1,0 +1,160 @@
+{
+  "parent": {
+    "name": "QC Sports Court",
+    "code": "QC-SC-01",
+    "description": "Quezon City Sports Court Facility - Multi-purpose sports facility with indoor and outdoor courts",
+    "locationType": "BUILDING",
+    "organizationId": "507f1f77bcf86cd799439011",
+    "address": "123 Sports Complex Avenue",
+    "city": "Quezon City",
+    "state": "Metro Manila",
+    "country": "PH",
+    "postalCode": "1100",
+    "latitude": 14.6760,
+    "longitude": 121.0437,
+    "timezone": "Asia/Manila",
+    "metadata": {
+      "buildingType": "CLUBHOUSE",
+      "totalFloors": 2,
+      "basementLevels": 0,
+      "hasElevator": true,
+      "elevatorCount": 1,
+      "totalArea": 5000,
+      "hasParkingFacility": true,
+      "parkingSpots": 50,
+      "accessibility": ["wheelchair", "ramp", "elevator", "accessible_restrooms"],
+      "yearBuilt": 2020
+    },
+    "imageUrl": [],
+    "path": "/qc-sports-court",
+    "isActive": true
+  },
+  "children": [
+    {
+      "name": "Ground Floor - Sports Courts",
+      "code": "QC-SC-01-GF",
+      "description": "Ground floor with multiple sports courts and facilities",
+      "locationType": "FLOOR",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "floorNumber": 0,
+        "floorLabel": "Ground Floor - Sports Courts",
+        "totalArea": 2500,
+        "ceilingHeight": 6.0,
+        "hasRestrooms": true,
+        "hasEmergencyExit": true,
+        "zoneType": "RECREATIONAL",
+        "capacity": 200,
+        "unitCount": 4
+      },
+      "path": "/qc-sports-court/ground-floor",
+      "isActive": true
+    },
+    {
+      "name": "2nd Floor - Administrative & Facilities",
+      "code": "QC-SC-01-2F",
+      "description": "Second floor with administrative offices, locker rooms, and viewing areas",
+      "locationType": "FLOOR",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "floorNumber": 2,
+        "floorLabel": "2nd Floor - Administrative & Facilities",
+        "totalArea": 2500,
+        "ceilingHeight": 3.5,
+        "hasRestrooms": true,
+        "hasEmergencyExit": true,
+        "zoneType": "ADMINISTRATIVE",
+        "capacity": 50,
+        "unitCount": 8
+      },
+      "path": "/qc-sports-court/2nd-floor",
+      "isActive": true
+    },
+    {
+      "name": "Indoor Courts Area",
+      "code": "QC-SC-01-INDOOR",
+      "description": "Indoor sports courts area with climate control",
+      "locationType": "AREA",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "areaType": "COURTYARD",
+        "totalArea": 1500,
+        "capacity": 150,
+        "isPublicArea": true,
+        "hasClimate": true,
+        "seatingCapacity": 100
+      },
+      "path": "/qc-sports-court/indoor-courts",
+      "isActive": true
+    },
+    {
+      "name": "Outdoor Courts Area",
+      "code": "QC-SC-01-OUTDOOR",
+      "description": "Outdoor sports courts area",
+      "locationType": "OUTDOOR",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "outdoorType": "Courts",
+        "totalArea": 2000,
+        "hasSeating": true,
+        "hasLighting": true,
+        "hasShade": false,
+        "surfaceType": "Synthetic",
+        "weatherDependent": true,
+        "capacity": 200,
+        "operatingHours": "6:00 AM - 10:00 PM"
+      },
+      "path": "/qc-sports-court/outdoor-courts",
+      "isActive": true
+    },
+    {
+      "name": "Tennis Zone",
+      "code": "QC-SC-01-TENNIS",
+      "description": "Dedicated tennis courts zone",
+      "locationType": "ZONE",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "zoneType": "RECREATIONAL",
+        "securityLevel": "PUBLIC",
+        "requiresAccess": false,
+        "allowedActivities": ["Tennis", "Training", "Tournaments"],
+        "operatingHours": "6:00 AM - 10:00 PM",
+        "capacity": 40,
+        "hasSupervision": true
+      },
+      "path": "/qc-sports-court/tennis-zone",
+      "isActive": true
+    },
+    {
+      "name": "Basketball Zone",
+      "code": "QC-SC-01-BASKETBALL",
+      "description": "Dedicated basketball courts zone",
+      "locationType": "ZONE",
+      "organizationId": "507f1f77bcf86cd799439011",
+      "parentLocationId": "REPLACE_WITH_PARENT_ID",
+      "metadata": {
+        "zoneType": "RECREATIONAL",
+        "securityLevel": "PUBLIC",
+        "requiresAccess": false,
+        "allowedActivities": ["Basketball", "Training", "Games"],
+        "operatingHours": "6:00 AM - 10:00 PM",
+        "capacity": 60,
+        "hasSupervision": true
+      },
+      "path": "/qc-sports-court/basketball-zone",
+      "isActive": true
+    }
+  ],
+  "instructions": {
+    "step1": "First, create the parent location (QC Sports Court BUILDING) using the 'parent' object",
+    "step2": "Copy the 'id' from the created parent location response",
+    "step3": "Replace 'REPLACE_WITH_PARENT_ID' in all child locations with the actual parent ID",
+    "step4": "Create each child location using the objects in the 'children' array, one at a time",
+    "note": "Make sure to update organizationId with your actual organization ID before creating"
+  }
+}

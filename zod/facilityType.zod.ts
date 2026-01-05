@@ -141,7 +141,6 @@ const preprocessFacilityTypeData = z.preprocess(
 		spaceType: SpaceTypeSchema,
 		subtype: z.string().optional(),
 		organizationId: ObjectIdSchema,
-		rateTypeId: ObjectIdSchema.optional(),
 		path: z.string().optional(),
 	}),
 );
@@ -171,7 +170,6 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 			spaceType: SpaceTypeSchema.optional(),
 			subtype: z.string().optional(),
 			organizationId: ObjectIdSchema.optional(),
-			rateTypeId: ObjectIdSchema.optional(),
 			path: z.string().optional(),
 		})
 		.partial(),
@@ -185,7 +183,6 @@ export const FacilityTypeResponseSchema = z.object({
 	spaceType: SpaceTypeSchema,
 	subtype: z.string().optional(),
 	organizationId: z.string(),
-	rateTypeId: z.string().optional(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 	path: z.string().optional(),

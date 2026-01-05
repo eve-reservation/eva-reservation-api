@@ -124,6 +124,31 @@ export const controller = (prisma: PrismaClient) => {
 			const utcStartDateTime = bookingPeriod.startDateTime;
 			const utcEndDateTime = bookingPeriod.endDateTime;
 
+			// Auto-compute numberOfDays and numberOfHours from date range if not provided
+			if (!bookingPeriod.numberOfHours && !bookingPeriod.numberOfDays) {
+				const diffInMilliseconds = utcEndDateTime.getTime() - utcStartDateTime.getTime();
+				const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
+				const diffInDays = Math.ceil(diffInHours / 24);
+
+				bookingPeriod.numberOfHours = diffInHours;
+				bookingPeriod.numberOfDays = diffInDays;
+
+				reservationLogger.info(
+					`Auto-computed booking period: numberOfHours=${diffInHours}, numberOfDays=${diffInDays}`,
+				);
+			} else if (!bookingPeriod.numberOfHours) {
+				// If numberOfDays is provided but numberOfHours is not, calculate hours from days
+				const diffInMilliseconds = utcEndDateTime.getTime() - utcStartDateTime.getTime();
+				const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
+				bookingPeriod.numberOfHours = diffInHours;
+			} else if (!bookingPeriod.numberOfDays) {
+				// If numberOfHours is provided but numberOfDays is not, calculate days from hours
+				const diffInMilliseconds = utcEndDateTime.getTime() - utcStartDateTime.getTime();
+				const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
+				const diffInDays = Math.ceil(diffInHours / 24);
+				bookingPeriod.numberOfDays = diffInDays;
+			}
+
 			reservationLogger.info(
 				`Converted booking period dates to UTC: startDateTime=${utcStartDateTime.toISOString()}, endDateTime=${utcEndDateTime.toISOString()}`,
 			);
@@ -132,11 +157,8 @@ export const controller = (prisma: PrismaClient) => {
 			const facility = await prisma.facility.findUnique({
 				where: { id: facilityId },
 				include: {
-					facilityType: {
-						include: {
-							rateType: true,
-						},
-					},
+					facilityType: true,
+					rateType: true,
 				},
 			});
 
@@ -194,7 +216,7 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Auto-calculate pricing when rateType is available
 			let data = { ...validation.data, bookingPeriod };
-			const rateType = facility.facilityType?.rateType;
+			const rateType = facility.rateType;
 			if (rateType) {
 				const pricing = computeReservationPricing(
 					rateType,
