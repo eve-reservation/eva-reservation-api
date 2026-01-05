@@ -11,6 +11,8 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Fetch all history for unshallow clone
 
             - name: Setup Git
               run: |
@@ -35,6 +37,9 @@ jobs:
 
                   # Configure git to use the custom credential helper
                   git config --global credential.helper "/tmp/git-credential-helper.sh"
+
+                  # Unshallow the repository (Heroku requires full clone)
+                  git fetch --unshallow || git fetch --all
 
                   # Add Heroku remote manually
                   git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
