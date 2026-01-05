@@ -21,18 +21,23 @@ jobs:
               run: |
                   curl https://cli-assets.heroku.com/install.sh | sh
 
-            - name: Authenticate with Heroku and Deploy
-              env:
-                  HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-              run: |
-                  # Configure git credential helper BEFORE any git operations
-                  git config --global credential.helper store
-                  mkdir -p ~/.git
-                  echo "https://1bis.solutions.tech@gmail.com:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
-                  chmod 600 ~/.git-credentials
-
-                  # Add Heroku remote manually (avoid heroku git:remote which triggers git auth)
-                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
-
-                  # Push to Heroku main branch (same command we used manually)
-                  git push heroku HEAD:main --force
+      - name: Authenticate with Heroku and Deploy
+        env:
+          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+        run: |
+          # Create a custom credential helper script
+          cat > /tmp/git-credential-helper.sh << 'EOF'
+          #!/bin/bash
+          echo "username=1bis.solutions.tech@gmail.com"
+          echo "password=$HEROKU_API_KEY"
+          EOF
+          chmod +x /tmp/git-credential-helper.sh
+          
+          # Configure git to use the custom credential helper
+          git config --global credential.helper "/tmp/git-credential-helper.sh"
+          
+          # Add Heroku remote manually
+          git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
+          
+          # Push to Heroku main branch (same command we used manually)
+          git push heroku HEAD:main --force
