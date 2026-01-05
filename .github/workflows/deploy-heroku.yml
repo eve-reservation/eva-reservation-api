@@ -1,36 +1,36 @@
 name: Deploy to Heroku
 
 on:
-  push:
-    branches:
-      - develop # Trigger on push to develop branch
+    push:
+        branches:
+            - develop # Trigger on push to develop branch
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
 
-      - name: Setup Git
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+            - name: Setup Git
+              run: |
+                  git config --global user.name "GitHub Actions"
+                  git config --global user.email "actions@github.com"
 
-      - name: Install Heroku CLI
-        run: |
-          curl https://cli-assets.heroku.com/install.sh | sh
+            - name: Install Heroku CLI
+              run: |
+                  curl https://cli-assets.heroku.com/install.sh | sh
 
-      - name: Add Heroku remote and Deploy
-        env:
-          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-        run: |
-          # Configure git credential helper to use API key
-          git config --global credential.helper store
-          echo "https://:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
-          
-          # Add Heroku remote
-          git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
-          
-          # Push to Heroku main branch (same command we used manually)
-          git push heroku HEAD:main --force
+            - name: Add Heroku remote and Deploy
+              env:
+                  HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+              run: |
+                  # Configure git credential helper to use API key
+                  git config --global credential.helper store
+                  echo "https://:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
+
+                  # Add Heroku remote
+                  git remote add heroku https://git.heroku.com/reservation-api-dev.git || git remote set-url heroku https://git.heroku.com/reservation-api-dev.git
+
+                  # Push to Heroku main branch (same command we used manually)
+                  git push heroku HEAD:main --force
