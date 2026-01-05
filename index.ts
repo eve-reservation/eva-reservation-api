@@ -13,6 +13,8 @@ import { securityMiddleware, devSecurityMiddleware } from "./middleware/security
 process.setMaxListeners(50);
 
 const app = express();
+// Trust proxy for Heroku (needed for rate limiting and IP detection)
+app.set("trust proxy", 1);
 const prisma = new PrismaClient();
 
 const server = createServer(app);
