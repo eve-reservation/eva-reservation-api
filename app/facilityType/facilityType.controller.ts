@@ -179,6 +179,47 @@ export const controller = (prisma: PrismaClient) => {
 			}
 			const findManyQuery = buildFindManyQuery(whereClause, skip, limit, order, sort, fields);
 
+			// Always include rateType relation to get rateUnit
+			// If fields are specified, merge with existing select, otherwise use include
+			if (findManyQuery.select) {
+				// If select is used, ensure rateType is included with rateUnit
+				if (!findManyQuery.select.rateType) {
+					findManyQuery.select.rateType = {
+						select: {
+							id: true,
+							rateUnit: true,
+							name: true,
+							baseRate: true,
+							currency: true,
+						},
+					};
+				} else if (
+					typeof findManyQuery.select.rateType === "object" &&
+					findManyQuery.select.rateType !== null
+				) {
+					// If rateType is already in select as an object, ensure rateUnit is included
+					if (!findManyQuery.select.rateType.select) {
+						findManyQuery.select.rateType.select = {};
+					}
+					findManyQuery.select.rateType.select.rateUnit = true;
+				}
+				// If rateType is true (all fields), rateUnit will be included automatically
+			} else {
+				// If no select, use include
+				findManyQuery.include = {
+					rateType: {
+						select: {
+							id: true,
+							rateUnit: true,
+							name: true,
+							baseRate: true,
+							currency: true,
+						},
+					},
+					facilities: true,
+				};
+			}
+
 			const [facilityTypes, total] = await Promise.all([
 				document ? prisma.facilityType.findMany(findManyQuery) : [],
 				count ? prisma.facilityType.count({ where: whereClause }) : 0,

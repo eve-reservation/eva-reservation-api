@@ -38,7 +38,7 @@ export const FacilitySchema = z.object({
 	facilityTypeId: z.string().refine((val) => isValidObjectId(val)),
 	identifier: z.string().min(1),
 	displayName: z.string().optional().nullable(),
-	organizationId: z.string().min(1),
+	organizationId: z.string().min(1).optional().nullable(),
 	locationId: z
 		.string()
 		.refine((val) => isValidObjectId(val))
@@ -87,7 +87,7 @@ export type UpdateTemplate = z.infer<typeof UpdateFacilitySchema>;
  */
 export function validateFacilityMetadata(
 	metadata: any,
-	spaceType: string,
+	spaceType: string | null | undefined,
 	subtype?: string | null,
 ): { success: boolean; error?: string; requirements?: any } {
 	if (!metadata) {
@@ -105,6 +105,10 @@ export function validateFacilityMetadata(
 				error: "Failed to parse metadata JSON",
 			};
 		}
+	}
+
+	if (!spaceType) {
+		return { success: true };
 	}
 
 	// Get the field requirements for error messages

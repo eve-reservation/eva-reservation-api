@@ -431,10 +431,10 @@ export const controller = (prisma: PrismaClient) => {
 				query.select = getNestedFields(fields);
 
 				// Include related location and facilityType
-				query.include = {
-					location: true,
-					facilityType: true,
-				};
+				// query.include = {
+				// 	location: true,
+				// 	facilityType: true,
+				// };
 
 				facility = await prisma.facility.findFirst(query);
 
