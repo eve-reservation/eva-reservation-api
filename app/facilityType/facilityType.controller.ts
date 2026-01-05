@@ -61,29 +61,27 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			if (validation.data.rateTypeId) {
-				let rateType = null;
-				try {
-					rateType = await prisma.rateType.findUnique({
-						where: { id: validation.data.rateTypeId },
-					});
-				} catch (lookupError) {
-					facilityTypeLogger.error(
-						`RateType lookup failed: ${validation.data.rateTypeId}`,
-						lookupError,
-					);
-					const errorResponse = buildErrorResponse("Unable to verify rateType", 503, [
-						{ field: "rateTypeId", message: "Temporary issue verifying rate type" },
-					]);
-					res.status(503).json(errorResponse);
-					return;
-				}
+			// Check for unique code within organization if code is provided
+			if (validation.data.code) {
+				const existingFacilityType = await prisma.facilityType.findFirst({
+					where: {
+						code: validation.data.code,
+						organizationId: validation.data.organizationId,
+					},
+				});
 
-				if (!rateType) {
-					const errorResponse = buildErrorResponse("RateType not found", 400, [
-						{ field: "rateTypeId", message: "RateType does not exist" },
-					]);
-					res.status(400).json(errorResponse);
+				if (existingFacilityType) {
+					const errorResponse = buildErrorResponse(
+						"A facilityType with this code already exists in this organization",
+						409,
+						[
+							{
+								field: "code",
+								message: `Duplicate code: A facilityType with code "${validation.data.code}" already exists for this organization`,
+							},
+						],
+					);
+					res.status(409).json(errorResponse);
 					return;
 				}
 			}
@@ -97,7 +95,6 @@ export const controller = (prisma: PrismaClient) => {
 					spaceType: validation.data.spaceType,
 					subtype: validation.data.subtype,
 					organizationId: validation.data.organizationId,
-					rateTypeId: validation.data.rateTypeId,
 					path: validation.data.path,
 				},
 			});
@@ -235,15 +232,6 @@ export const controller = (prisma: PrismaClient) => {
 			} else {
 				// If no select, use include
 				findManyQuery.include = {
-					rateType: {
-						select: {
-							id: true,
-							rateUnit: true,
-							name: true,
-							baseRate: true,
-							currency: true,
-						},
-					},
 					facilities: true,
 				};
 			}
@@ -333,45 +321,6 @@ export const controller = (prisma: PrismaClient) => {
 				};
 
 				query.select = getNestedFields(fields);
-
-				// Always include rateType relation to get rateUnit
-				if (query.select) {
-					// If select is used, ensure rateType is included with rateUnit
-					if (!query.select.rateType) {
-						query.select.rateType = {
-							select: {
-								id: true,
-								rateUnit: true,
-								name: true,
-								baseRate: true,
-								currency: true,
-							},
-						};
-					} else if (
-						typeof query.select.rateType === "object" &&
-						query.select.rateType !== null
-					) {
-						// If rateType is already in select as an object, ensure rateUnit is included
-						if (!query.select.rateType.select) {
-							query.select.rateType.select = {};
-						}
-						query.select.rateType.select.rateUnit = true;
-					}
-					// If rateType is true (all fields), rateUnit will be included automatically
-				} else {
-					// If no select, use include
-					query.include = {
-						rateType: {
-							select: {
-								id: true,
-								rateUnit: true,
-								name: true,
-								baseRate: true,
-								currency: true,
-							},
-						},
-					};
-				}
 
 				facilityType = await prisma.facilityType.findFirst(query);
 
@@ -470,6 +419,38 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			const validatedData = validationResult.data;
+
+			// Check for unique code within organization if code is being updated
+			if (
+				validatedData.code !== undefined &&
+				validatedData.code !== existingFacilityType.code
+			) {
+				const organizationIdToUse =
+					validatedData.organizationId || existingFacilityType.organizationId;
+
+				const existingWithCode = await prisma.facilityType.findFirst({
+					where: {
+						code: validatedData.code,
+						organizationId: organizationIdToUse,
+						id: { not: id }, // Exclude the current facilityType
+					},
+				});
+
+				if (existingWithCode) {
+					const errorResponse = buildErrorResponse(
+						"A facilityType with this code already exists in this organization",
+						409,
+						[
+							{
+								field: "code",
+								message: `Duplicate code: A facilityType with code "${validatedData.code}" already exists for this organization`,
+							},
+						],
+					);
+					res.status(409).json(errorResponse);
+					return;
+				}
+			}
 
 			facilityTypeLogger.info(`Updating facilityType: ${id}`);
 

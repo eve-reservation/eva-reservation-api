@@ -98,10 +98,6 @@ model FacilityType {
   // Organization identifier only (organization lives in another service)
   organizationId String?
 
-  // Pricing
-  rateTypeId     String?  @db.ObjectId
-  rateType       RateType? @relation(fields: [rateTypeId], references: [id])
-
   // Path for hierarchical organization
   path           String?
 

@@ -46,6 +46,10 @@ model Facility {
   location        Location?       @relation(fields: [locationId], references: [id])
   locationId      String?         @db.ObjectId
   
+  // Pricing
+  rateTypeId      String?         @db.ObjectId
+  rateType        RateType?       @relation(fields: [rateTypeId], references: [id])
+  
   // Instance-specific attributes (overrides facilityType)
   attributes      Json?
 
@@ -74,5 +78,6 @@ model Facility {
   @@unique([organizationId, identifier])
   @@index([facilityTypeId])
   @@index([locationId])
+  @@index([rateTypeId])
   @@index([status])
 }

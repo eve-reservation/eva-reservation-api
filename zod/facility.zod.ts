@@ -44,6 +44,11 @@ export const FacilitySchema = z.object({
 		.refine((val) => isValidObjectId(val))
 		.optional()
 		.nullable(),
+	rateTypeId: z
+		.string()
+		.refine((val) => isValidObjectId(val))
+		.optional()
+		.nullable(),
 	attributes: z.any().optional(),
 	metadata: z.union([z.string(), z.record(z.any())]).optional(),
 	images: z.array(FacilityImageSchema).optional().default([]),

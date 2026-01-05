@@ -171,7 +171,6 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 			spaceType: SpaceTypeSchema.optional(),
 			subtype: z.string().optional(),
 			organizationId: ObjectIdSchema.optional(),
-			rateTypeId: ObjectIdSchema.optional(),
 			path: z.string().optional(),
 		})
 		.partial(),

@@ -134,6 +134,34 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
+			// Validate rateTypeId if provided
+			if (validation.data.rateTypeId) {
+				let rateType = null;
+				try {
+					rateType = await prisma.rateType.findUnique({
+						where: { id: validation.data.rateTypeId },
+					});
+				} catch (lookupError) {
+					facilityLogger.error(
+						`RateType lookup failed: ${validation.data.rateTypeId}`,
+						lookupError,
+					);
+					const errorResponse = buildErrorResponse("Unable to verify rateType", 503, [
+						{ field: "rateTypeId", message: "Temporary issue verifying rate type" },
+					]);
+					res.status(503).json(errorResponse);
+					return;
+				}
+
+				if (!rateType) {
+					const errorResponse = buildErrorResponse("RateType not found", 400, [
+						{ field: "rateTypeId", message: "RateType does not exist" },
+					]);
+					res.status(400).json(errorResponse);
+					return;
+				}
+			}
+
 			// Fetch facilityType to get spaceType and subtype for metadata validation
 			const facilityType = await prisma.facilityType.findUnique({
 				where: { id: validation.data.facilityTypeId },
@@ -551,11 +579,8 @@ export const controller = (prisma: PrismaClient) => {
 					where: whereClause,
 					include: {
 						location: true,
-						facilityType: {
-							include: {
-								rateType: true,
-							},
-						},
+						facilityType: true,
+						rateType: true,
 					},
 					take: limitValue,
 					skip: skipValue,
@@ -803,6 +828,34 @@ export const controller = (prisma: PrismaClient) => {
 			const validatedData = validationResult.data;
 
 			facilityLogger.info(`Updating facility: ${id}`);
+
+			// Validate rateTypeId if provided
+			if (validatedData.rateTypeId) {
+				let rateType = null;
+				try {
+					rateType = await prisma.rateType.findUnique({
+						where: { id: validatedData.rateTypeId },
+					});
+				} catch (lookupError) {
+					facilityLogger.error(
+						`RateType lookup failed: ${validatedData.rateTypeId}`,
+						lookupError,
+					);
+					const errorResponse = buildErrorResponse("Unable to verify rateType", 503, [
+						{ field: "rateTypeId", message: "Temporary issue verifying rate type" },
+					]);
+					res.status(503).json(errorResponse);
+					return;
+				}
+
+				if (!rateType) {
+					const errorResponse = buildErrorResponse("RateType not found", 400, [
+						{ field: "rateTypeId", message: "RateType does not exist" },
+					]);
+					res.status(400).json(errorResponse);
+					return;
+				}
+			}
 
 			// Handle metadata validation if metadata is being updated
 			let processedMetadata = validatedData.metadata;

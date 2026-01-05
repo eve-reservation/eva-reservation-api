@@ -27,7 +27,7 @@ model RateType {
   // Seasonal or time-based adjustments
   adjustments     Json?
   
-  facilityTypes   FacilityType[]
+  facilities      Facility[]
   
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
