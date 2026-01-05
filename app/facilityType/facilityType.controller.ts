@@ -61,6 +61,31 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
+			// Check for unique code within organization if code is provided
+			if (validation.data.code) {
+				const existingFacilityType = await prisma.facilityType.findFirst({
+					where: {
+						code: validation.data.code,
+						organizationId: validation.data.organizationId,
+					},
+				});
+
+				if (existingFacilityType) {
+					const errorResponse = buildErrorResponse(
+						"A facilityType with this code already exists in this organization",
+						409,
+						[
+							{
+								field: "code",
+								message: `Duplicate code: A facilityType with code "${validation.data.code}" already exists for this organization`,
+							},
+						],
+					);
+					res.status(409).json(errorResponse);
+					return;
+				}
+			}
+
 			// Prepare data for Prisma
 			const facilityType = await prisma.facilityType.create({
 				data: {
@@ -207,15 +232,6 @@ export const controller = (prisma: PrismaClient) => {
 			} else {
 				// If no select, use include
 				findManyQuery.include = {
-					rateType: {
-						select: {
-							id: true,
-							rateUnit: true,
-							name: true,
-							baseRate: true,
-							currency: true,
-						},
-					},
 					facilities: true,
 				};
 			}
@@ -403,6 +419,38 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			const validatedData = validationResult.data;
+
+			// Check for unique code within organization if code is being updated
+			if (
+				validatedData.code !== undefined &&
+				validatedData.code !== existingFacilityType.code
+			) {
+				const organizationIdToUse =
+					validatedData.organizationId || existingFacilityType.organizationId;
+
+				const existingWithCode = await prisma.facilityType.findFirst({
+					where: {
+						code: validatedData.code,
+						organizationId: organizationIdToUse,
+						id: { not: id }, // Exclude the current facilityType
+					},
+				});
+
+				if (existingWithCode) {
+					const errorResponse = buildErrorResponse(
+						"A facilityType with this code already exists in this organization",
+						409,
+						[
+							{
+								field: "code",
+								message: `Duplicate code: A facilityType with code "${validatedData.code}" already exists for this organization`,
+							},
+						],
+					);
+					res.status(409).json(errorResponse);
+					return;
+				}
+			}
 
 			facilityTypeLogger.info(`Updating facilityType: ${id}`);
 
