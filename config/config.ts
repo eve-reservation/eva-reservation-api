@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const config = {
-	port: process.env.PORT || 3000,
+	port: parseInt(process.env.PORT || "3000", 10),
 	baseApiPath: "/api",
 	betterStackSourceToken: process.env.BETTER_STACK_SOURCE_TOKEN || "",
 	betterStackHost: process.env.BETTER_STACK_HOST || "",

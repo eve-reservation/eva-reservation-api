@@ -63,6 +63,7 @@
     "express-rate-limit": "^7.4.1",
     "express-slow-down": "^2.0.3",
     "helmet": "^8.1.0",
+    "heroku": "^8.7.1",
     "http": "^0.0.1-security",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",

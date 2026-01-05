@@ -39,8 +39,8 @@ if (process.env.NODE_ENV === "production") {
 
 const template = require("./app/template")(prisma);
 const facility = require("./app/facility")(prisma);
-const facilitytype = require("./app/facilitytype")(prisma);
-const ratetype = require("./app/ratetype")(prisma);
+const facilitytype = require("./app/facilityType")(prisma);
+const ratetype = require("./app/RateType")(prisma);
 const location = require("./app/location")(prisma);
 const reservation = require("./app/reservation")(prisma);
 const guest = require("./app/guest")(prisma);
@@ -135,9 +135,11 @@ app.use(config.baseApiPath, docs(prisma, app));
 // Store app instance globally for docs generation after all routes are registered
 (global as any).app = app;
 
-server.listen(config.port, async () => {
+// Bind to 0.0.0.0 for Heroku/Docker compatibility
+const host = process.env.HOST || "0.0.0.0";
+server.listen(config.port, host, async () => {
 	await connectAllDatabases();
-	console.log(`Server is running on port ${config.port}`);
+	console.log(`Server is running on ${host}:${config.port}`);
 });
 
 // Graceful shutdown handler
