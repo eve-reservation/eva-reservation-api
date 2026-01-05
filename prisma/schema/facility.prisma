@@ -53,6 +53,10 @@ model Facility {
   // Instance-specific attributes (overrides facilityType)
   attributes      Json?
 
+  // Hierarchical classification
+  spaceType      SpaceType?	
+  subtype        String?  // Stores the appropriate subtype enum value as string
+
   // Polymorphic metadata based on facilityType.spaceType + facilityType.subtype
   // Examples:
   // - ROOM + GUEST_ROOM: {bedType, bedCount, maxOccupancy, roomFeatures, amenities}
