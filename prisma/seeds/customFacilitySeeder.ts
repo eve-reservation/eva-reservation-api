@@ -18,13 +18,15 @@ export async function seedCustomFacilities() {
 	// Default org
 	const defaultOrgId = "507f1f77bcf86cd799439010";
 
-	// Helper to generate mock image
-	const getMockImage = (name: string, category: string) => {
-		const text = encodeURIComponent(name);
+	// Helper to generate mock image using LoremFlickr
+	const getMockImage = (name: string, keywords: string) => {
+		// Add a random lock to prevent browser caching if multiple images use same keywords
+		const randomLock = Math.floor(Math.random() * 10000);
 		return [
 			{
 				name: name,
-				url: `https://placehold.co/800x600?text=${text}`,
+				// loremflickr uses /width/height/keywords
+				url: `https://loremflickr.com/800/600/${keywords}?lock=${randomLock}`,
 				type: FacilityImageType.COVER,
 			},
 		];
@@ -66,7 +68,10 @@ export async function seedCustomFacilities() {
 									"Indoor Climate Control",
 								],
 							},
-							images: getMockImage(`Covered Tennis Court ${i + 1}`, "tennis"),
+							images: getMockImage(
+								`Covered Tennis Court ${i + 1}`,
+								"tennis,court,indoor",
+							),
 						})),
 						...Array.from({ length: 3 }, (_, i) => ({
 							identifier: `TENNIS-OUT-${i + 1}`,
@@ -78,7 +83,10 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 4,
 								amenities: ["Benches", "Natural Lighting", "Perimeter Fencing"],
 							},
-							images: getMockImage(`Open-air Tennis Court ${i + 1}`, "tennis"),
+							images: getMockImage(
+								`Open-air Tennis Court ${i + 1}`,
+								"tennis,court,outdoor",
+							),
 						})),
 					],
 				},
@@ -96,7 +104,7 @@ export async function seedCustomFacilities() {
 							maxOccupancy: 4,
 							amenities: ["Lighting", "Net", "Benches"],
 						},
-						images: getMockImage(`Badminton Court ${i + 1}`, "badminton"),
+						images: getMockImage(`Badminton Court ${i + 1}`, "badminton,court,sport"),
 					})),
 				},
 				{
@@ -119,7 +127,7 @@ export async function seedCustomFacilities() {
 									"Lifeguard Station",
 								],
 							},
-							images: getMockImage("Competition Pool", "pool"),
+							images: getMockImage("Competition Pool", "swimming,pool,competition"),
 						},
 						{
 							identifier: "POOL-KID-1",
@@ -131,7 +139,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 15,
 								amenities: ["Slides", "Mushroom Shower", "Lifeguard Station"],
 							},
-							images: getMockImage("Kiddie Pool 1", "pool"),
+							images: getMockImage("Kiddie Pool 1", "pool,waterpark,mixed"),
 						},
 						{
 							identifier: "POOL-KID-2",
@@ -143,7 +151,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 15,
 								amenities: ["Fountains", "Shallow Water"],
 							},
-							images: getMockImage("Kiddie Pool 2", "pool"),
+							images: getMockImage("Kiddie Pool 2", "pool,kids,fun"),
 						},
 					],
 				},
@@ -166,7 +174,7 @@ export async function seedCustomFacilities() {
 								"Ball Return",
 							],
 						},
-						images: getMockImage(`Bowling Lane ${i + 1}`, "bowling"),
+						images: getMockImage(`Bowling Lane ${i + 1}`, "bowling,alley,pins"),
 					})),
 				},
 				{
@@ -183,7 +191,7 @@ export async function seedCustomFacilities() {
 							maxOccupancy: 4,
 							amenities: ["Net", "Fencing"],
 						},
-						images: getMockImage(`Pickleball Court ${i + 1}`, "pickleball"),
+						images: getMockImage(`Pickleball Court ${i + 1}`, "tennis,court,net"), // using tennis as proxy if pickleball specific is rare on loremflickr
 					})),
 				},
 				{
@@ -207,7 +215,7 @@ export async function seedCustomFacilities() {
 									"Gloves Rental",
 								],
 							},
-							images: getMockImage("Elorde Muay Thai", "boxing"),
+							images: getMockImage("Elorde Muay Thai", "boxing,ring,gym"),
 						},
 					],
 				},
@@ -231,7 +239,7 @@ export async function seedCustomFacilities() {
 									"Lighting",
 								],
 							},
-							images: getMockImage("Basketball Court", "basketball"),
+							images: getMockImage("Basketball Court", "basketball,court,indoor"),
 						},
 					],
 				},
@@ -250,7 +258,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 2,
 								amenities: ["Glass Wall", "Wooden Floor"],
 							},
-							images: getMockImage("Squash Court 1", "squash"),
+							images: getMockImage("Squash Court 1", "squash,court"),
 						},
 						{
 							identifier: "SQUASH-2",
@@ -262,7 +270,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 2,
 								amenities: ["Glass Wall", "Wooden Floor"],
 							},
-							images: getMockImage("Squash Court 2", "squash"),
+							images: getMockImage("Squash Court 2", "squash,court"),
 						},
 					],
 				},
@@ -287,7 +295,7 @@ export async function seedCustomFacilities() {
 									"Bar Access",
 								],
 							},
-							images: getMockImage("Billiard Hall", "billiards"),
+							images: getMockImage("Billiard Hall", "billiards,pooltable"),
 						},
 					],
 				},
@@ -306,7 +314,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 10,
 								amenities: ["ITTF Tables", "Nets", "Paddles Rental"],
 							},
-							images: getMockImage("Table Tennis", "pingpong"),
+							images: getMockImage("Table Tennis", "pingpong,tabletennis"),
 						},
 					],
 				},
@@ -330,7 +338,7 @@ export async function seedCustomFacilities() {
 									"Ballet Barres",
 								],
 							},
-							images: getMockImage("Dance Studio", "dance"),
+							images: getMockImage("Dance Studio", "dancestudio,ballet"),
 						},
 					],
 				},
@@ -359,7 +367,7 @@ export async function seedCustomFacilities() {
 									"Personal Trainers",
 								],
 							},
-							images: getMockImage("Main Gym", "gym"),
+							images: getMockImage("Main Gym", "gym,fitness,weights"),
 						},
 						{
 							identifier: "SAUNA-MAIN",
@@ -375,7 +383,7 @@ export async function seedCustomFacilities() {
 									"Wooden Seating",
 								],
 							},
-							images: getMockImage("Sauna", "sauna"),
+							images: getMockImage("Sauna", "sauna,spa"),
 						},
 					],
 				},
@@ -399,7 +407,7 @@ export async function seedCustomFacilities() {
 									"Towels",
 								],
 							},
-							images: getMockImage("Massage Room", "massage"),
+							images: getMockImage("Massage Room", "massage,spa,relax"),
 						},
 						{
 							identifier: "REFLEXOLOGY",
@@ -411,7 +419,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 4,
 								amenities: ["Reclining Chairs", "Foot Baths", "Therapists"],
 							},
-							images: getMockImage("Reflexology", "spa"),
+							images: getMockImage("Reflexology", "footmassage,spa"),
 						},
 					],
 				},
@@ -430,7 +438,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 3,
 								amenities: ["Haircut", "Shave", "Grooming Products"],
 							},
-							images: getMockImage("Barber Shop", "barber"),
+							images: getMockImage("Barber Shop", "barbershop,haircut"),
 						},
 						{
 							identifier: "SALON",
@@ -447,7 +455,7 @@ export async function seedCustomFacilities() {
 									"Hair Coloring",
 								],
 							},
-							images: getMockImage("Beauty Salon", "salon"),
+							images: getMockImage("Beauty Salon", "beautysalon,hair"),
 						},
 					],
 				},
@@ -478,7 +486,7 @@ export async function seedCustomFacilities() {
 									"Private Dressing Room",
 								],
 							},
-							images: getMockImage("Quezon Hall", "hall"),
+							images: getMockImage("Quezon Hall", "ballroom,eventhall,wedding"),
 						},
 						{
 							identifier: "HALL-PUGAD",
@@ -495,7 +503,7 @@ export async function seedCustomFacilities() {
 									"Air Conditioning",
 								],
 							},
-							images: getMockImage("Pugad Lawin Hall", "hall"),
+							images: getMockImage("Pugad Lawin Hall", "conferencehall,event"),
 						},
 						{
 							identifier: "HALL-BAGUMBAYAN",
@@ -511,7 +519,7 @@ export async function seedCustomFacilities() {
 									"Air Conditioning",
 								],
 							},
-							images: getMockImage("Bagumbayan Hall", "hall"),
+							images: getMockImage("Bagumbayan Hall", "banquethall,party"),
 						},
 					],
 				},
@@ -530,7 +538,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 30,
 								amenities: ["Whiteboard", "TV Screen", "Conference Table", "Wi-Fi"],
 							},
-							images: getMockImage("Function Room 1", "meeting"),
+							images: getMockImage("Function Room 1", "meetingroom,corporate"),
 						},
 						{
 							identifier: "FUNC-2",
@@ -542,7 +550,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 30,
 								amenities: ["Projector", "Screen", "Whiteboard", "Wi-Fi"],
 							},
-							images: getMockImage("Function Room 2", "meeting"),
+							images: getMockImage("Function Room 2", "conferenceroom,office"),
 						},
 					],
 				},
@@ -561,7 +569,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 300,
 								amenities: ["Buffet Setup", "Bar Area", "Stage"],
 							},
-							images: getMockImage("Banquet Hall", "dining"),
+							images: getMockImage("Banquet Hall", "restaurant,buffet"),
 						},
 						{
 							identifier: "DINE-DAILY",
@@ -573,7 +581,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 100,
 								amenities: ["A la Carte Menu", "High Chairs", "TVs"],
 							},
-							images: getMockImage("Daily Dining", "dining"),
+							images: getMockImage("Daily Dining", "restaurant,dining,food"),
 						},
 						{
 							identifier: "DINE-COFFEE",
@@ -585,7 +593,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 40,
 								amenities: ["Free Wi-Fi", "Power Outlets", "Lounge Seating"],
 							},
-							images: getMockImage("Coffee Shop", "cafe"),
+							images: getMockImage("Coffee Shop", "coffeeshop,cafe,latte"),
 						},
 						{
 							identifier: "DINE-BAR",
@@ -597,7 +605,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 60,
 								amenities: ["Full Bar", "Live Music Space", "TV Screens"],
 							},
-							images: getMockImage("Bar Lounge", "bar"),
+							images: getMockImage("Bar Lounge", "bar,cocktails,lounge"),
 						},
 						{
 							identifier: "DINE-SHABU",
@@ -609,7 +617,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 50,
 								amenities: ["Tabletop Burners", "Ventilation"],
 							},
-							images: getMockImage("Shabu Shabu", "restaurant"),
+							images: getMockImage("Shabu Shabu", "hotpot,dining,asianfood"),
 						},
 						{
 							identifier: "DINE-POTATO",
@@ -621,7 +629,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 0,
 								amenities: ["Takeout Only"],
 							},
-							images: getMockImage("Potato Corner", "foodstall"),
+							images: getMockImage("Potato Corner", "frenchfries,snack,foodstall"),
 						},
 					],
 				},
@@ -640,7 +648,7 @@ export async function seedCustomFacilities() {
 								maxOccupancy: 0,
 								amenities: ["Pickup Counter", "Parking Near Entrance"],
 							},
-							images: getMockImage("Family Meals", "food"),
+							images: getMockImage("Family Meals", "takeout,foodpacking"),
 						},
 					],
 				},
