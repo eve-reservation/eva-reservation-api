@@ -1,0 +1,39 @@
+{
+	"facilityTypeId": "507f1f77bcf86cd799439017",
+	"identifier": "Basketball Court 1",
+	"displayName": "Indoor Basketball Court - Main Arena",
+	"organizationId": "507f1f77bcf86cd799439011",
+	"locationId": "507f1f77bcf86cd799439025",
+	"spaceType": "COURT",
+	"subtype": "BASKETBALL",
+	"status": "AVAILABLE",
+	"rateTypeId": "507f1f77bcf86cd799439030",
+	"metadata": {
+		"sportType": "Basketball",
+		"surfaceType": "Hardwood",
+		"isIndoor": true,
+		"hasLighting": true,
+		"maxPlayers": 10,
+		"equipmentProvided": ["Basketball", "Scoreboard", "Benches", "Water Cooler"],
+		"openingHours": "6:00 AM - 11:00 PM",
+		"courtSize": "Full Court"
+	},
+	"images": [
+		{
+			"name": "Basketball Court Main View",
+			"url": "https://example.com/images/basketball-court-1.jpg",
+			"type": "COVER"
+		},
+		{
+			"name": "Basketball Court Side View",
+			"url": "https://example.com/images/basketball-court-1-side.jpg",
+			"type": "GALLERY"
+		}
+	],
+	"attributes": {
+		"flooring": "Professional Grade Hardwood",
+		"hoopHeight": "10 feet",
+		"courtDimensions": "94 x 50 feet",
+		"seatingCapacity": 100
+	}
+}

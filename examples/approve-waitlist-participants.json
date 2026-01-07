@@ -1,0 +1,121 @@
+{
+	"scenarios": [
+		{
+			"step": 1,
+			"description": "View all waitlist participants for an event",
+			"method": "GET",
+			"endpoint": "/api/match-event/695cd539e5800f65afc9ebd5/participants?status=WAITLIST",
+			"headers": {
+				"Authorization": "Bearer YOUR_TOKEN"
+			},
+			"expectedResponse": {
+				"status": "success",
+				"message": "Participants retrieved successfully",
+				"data": {
+					"participants": [
+						{
+							"id": "695daedc7e100e9fa4517ed2",
+							"userId": "507f1f77bcf86cd799439017",
+							"personId": null,
+							"status": "WAITLIST",
+							"metadata": {
+								"isGroupLeader": true
+							}
+						},
+						{
+							"id": "695daedc7e100e9fa4517ed4",
+							"userId": null,
+							"personId": "695daedb7e100e9fa4517ece",
+							"status": "WAITLIST",
+							"metadata": {
+								"isGroupMember": true
+							}
+						}
+					],
+					"total": 5
+				}
+			}
+		},
+		{
+			"step": 2,
+			"description": "Approve a single waitlist participant",
+			"method": "PATCH",
+			"endpoint": "/api/match-event/participant/695daedc7e100e9fa4517ed2",
+			"headers": {
+				"Authorization": "Bearer YOUR_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"status": "ACCEPTED",
+				"notes": "Approved from waitlist - space available"
+			},
+			"expectedResponse": {
+				"status": "success",
+				"message": "Participant updated successfully",
+				"data": {
+					"participant": {
+						"id": "695daedc7e100e9fa4517ed2",
+						"status": "ACCEPTED",
+						"acceptedAt": "2026-01-07T01:00:00.000Z",
+						"notes": "Approved from waitlist - space available"
+					}
+				}
+			}
+		},
+		{
+			"step": 3,
+			"description": "Approve multiple waitlist participants (sequential)",
+			"method": "PATCH",
+			"endpoint": "/api/match-event/participant/{participantId}",
+			"headers": {
+				"Authorization": "Bearer YOUR_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"participantsToApprove": [
+				{
+					"participantId": "695daedc7e100e9fa4517ed3",
+					"body": {
+						"status": "ACCEPTED"
+					}
+				},
+				{
+					"participantId": "695daedc7e100e9fa4517ed4",
+					"body": {
+						"status": "ACCEPTED"
+					}
+				},
+				{
+					"participantId": "695daedc7e100e9fa4517ed5",
+					"body": {
+						"status": "ACCEPTED"
+					}
+				}
+			]
+		},
+		{
+			"step": 4,
+			"description": "Verify accepted participants after approval",
+			"method": "GET",
+			"endpoint": "/api/match-event/695cd539e5800f65afc9ebd5/participants?status=ACCEPTED",
+			"headers": {
+				"Authorization": "Bearer YOUR_TOKEN"
+			}
+		},
+		{
+			"step": 5,
+			"description": "Check remaining waitlist participants",
+			"method": "GET",
+			"endpoint": "/api/match-event/695cd539e5800f65afc9ebd5/participants?status=WAITLIST",
+			"headers": {
+				"Authorization": "Bearer YOUR_TOKEN"
+			}
+		}
+	],
+	"notes": [
+		"Only the event creator can approve participants",
+		"When approving a WAITLIST participant to ACCEPTED, the system automatically sets acceptedAt timestamp",
+		"If the event was FULL and you approve waitlist participants, the event status may change back to OPEN if space becomes available",
+		"Group members (personId) can also be approved individually"
+	]
+}
+

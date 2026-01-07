@@ -162,10 +162,9 @@ export const controller = (prisma: PrismaClient) => {
 				}
 			}
 
-			// Fetch facilityType to get spaceType and subtype for metadata validation
+			// Verify facilityType exists
 			const facilityType = await prisma.facilityType.findUnique({
 				where: { id: validation.data.facilityTypeId },
-				select: { spaceType: true, subtype: true },
 			});
 
 			if (!facilityType) {
@@ -195,11 +194,11 @@ export const controller = (prisma: PrismaClient) => {
 					}
 				}
 
-				// Validate metadata based on facilityType's spaceType and subtype
+				// Validate metadata based on facility's spaceType and subtype
 				const metadataValidation = validateFacilityMetadata(
 					processedMetadata,
-					facilityType.spaceType,
-					facilityType.subtype || null,
+					validation.data.spaceType,
+					validation.data.subtype || null,
 				);
 
 				if (!metadataValidation.success) {
@@ -667,7 +666,6 @@ export const controller = (prisma: PrismaClient) => {
 			// Get existing facility to compare images
 			const existingFacility = await prisma.facility.findFirst({
 				where: { id },
-				include: { facilityType: { select: { spaceType: true, subtype: true } } },
 			});
 
 			if (!existingFacility) {
@@ -873,30 +871,33 @@ export const controller = (prisma: PrismaClient) => {
 					}
 				}
 
-				// Get facilityType for validation (use new facilityTypeId if provided, otherwise existing)
-				const facilityTypeIdToUse =
-					validatedData.facilityTypeId || existingFacility.facilityTypeId;
-				const facilityType = await prisma.facilityType.findUnique({
-					where: { id: facilityTypeIdToUse },
-					select: { spaceType: true, subtype: true },
-				});
+				// Verify facilityType exists if facilityTypeId is being updated
+				if (validatedData.facilityTypeId) {
+					const facilityType = await prisma.facilityType.findUnique({
+						where: { id: validatedData.facilityTypeId },
+					});
 
-				if (!facilityType) {
-					const errorResponse = buildErrorResponse("FacilityType not found", 404, [
-						{
-							field: "facilityTypeId",
-							message: "The specified facilityType does not exist",
-						},
-					]);
-					res.status(404).json(errorResponse);
-					return;
+					if (!facilityType) {
+						const errorResponse = buildErrorResponse("FacilityType not found", 404, [
+							{
+								field: "facilityTypeId",
+								message: "The specified facilityType does not exist",
+							},
+						]);
+						res.status(404).json(errorResponse);
+						return;
+					}
 				}
 
-				// Validate metadata based on facilityType's spaceType and subtype
+				// Validate metadata based on facility's spaceType and subtype
+				// Use updated values if provided, otherwise use existing facility values
+				const spaceTypeToUse = validatedData.spaceType ?? existingFacility.spaceType;
+				const subtypeToUse = validatedData.subtype ?? existingFacility.subtype;
+
 				const metadataValidation = validateFacilityMetadata(
 					processedMetadata,
-					facilityType.spaceType,
-					facilityType.subtype || null,
+					spaceTypeToUse,
+					subtypeToUse || null,
 				);
 
 				if (!metadataValidation.success) {

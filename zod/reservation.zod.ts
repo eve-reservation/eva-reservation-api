@@ -54,6 +54,7 @@ export const ReservationSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
 	// Organization identifier (required in Prisma model)
 	organizationId: z.string().min(1).optional().nullable(),
+	userId: z.string().optional().nullable(),
 	facilityId: z.string().refine((val) => isValidObjectId(val)),
 	status: ReservationStatusEnum.optional().default("PENDING"),
 	guestCount: z.number().int().optional().default(1),

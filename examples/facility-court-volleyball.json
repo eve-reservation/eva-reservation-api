@@ -1,0 +1,28 @@
+{
+	"facilityTypeId": "507f1f77bcf86cd799439020",
+	"identifier": "Volleyball Court 1",
+	"displayName": "Beach Volleyball Court",
+	"organizationId": "507f1f77bcf86cd799439011",
+	"locationId": "507f1f77bcf86cd799439025",
+	"spaceType": "COURT",
+	"subtype": "VOLLEYBALL",
+	"status": "AVAILABLE",
+	"rateTypeId": "507f1f77bcf86cd799439030",
+	"metadata": {
+		"sportType": "Volleyball",
+		"surfaceType": "Sand",
+		"isIndoor": false,
+		"hasLighting": true,
+		"maxPlayers": 12,
+		"equipmentProvided": ["Volleyball", "Net", "Boundary Lines"],
+		"openingHours": "8:00 AM - 9:00 PM",
+		"courtSize": "Standard"
+	},
+	"images": [
+		{
+			"name": "Volleyball Court",
+			"url": "https://example.com/images/volleyball-court-1.jpg",
+			"type": "COVER"
+		}
+	]
+}

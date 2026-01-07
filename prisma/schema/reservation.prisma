@@ -53,6 +53,8 @@ model Reservation {
   // Organization identifier
   organizationId  String?
   
+  userId          String?
+  
   facility        Facility          @relation(fields: [facilityId], references: [id])
   facilityId      String            @db.ObjectId
   
@@ -90,5 +92,8 @@ model Reservation {
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  
+  // Matchmaking relation (optional - one reservation can have one match event)
+  matchEvent      MatchEvent?
 
 }
