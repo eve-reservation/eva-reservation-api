@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isValidObjectId } from "mongoose";
-import { FacilityImageSchema, SpaceTypeSchema } from "./facilityType.zod";
+import { FacilityImageSchema } from "./facilityType.zod";
 import {
 	GuestRoomMetadataSchema,
 	ConferenceRoomMetadataSchema,
@@ -160,8 +160,6 @@ const FacilityBaseSchema = z.object({
 	spaceType: SpaceTypeSchema.optional(),
 	subtype: z.string().optional(),
 	attributes: z.any().optional(),
-	spaceType: SpaceTypeSchema.optional(),
-	subtype: z.string().optional(),
 	metadata: z.union([z.string(), z.record(z.any())]).optional(),
 	images: z.array(FacilityImageSchema).optional().default([]),
 	status: FacilityStatusSchema.optional().default("AVAILABLE"),
