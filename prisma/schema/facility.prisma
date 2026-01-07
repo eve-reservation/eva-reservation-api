@@ -1,3 +1,87 @@
+enum SpaceType {
+  ROOM              // Indoor enclosed spaces (hotel rooms, conference rooms, offices)
+  COURT             // Sports/recreation courts (tennis, basketball, etc.)
+  DINING            // Food & beverage spaces (restaurant, cafe, bar)
+  FITNESS           // Gym and fitness facilities
+  PARKING           // Parking spaces/lots
+  AMENITY           // Pool, spa, lounge, etc.
+  OUTDOOR           // Outdoor spaces (garden, terrace, etc.)
+  OTHER
+}
+
+enum RoomSubtype {
+  GUEST_ROOM        // Hotel/accommodation rooms
+  CONFERENCE_ROOM   // Meeting/conference rooms
+  OFFICE            // Office spaces
+  STUDIO            // Photography/recording studio
+  CLASSROOM         // Training/education rooms
+  BALLROOM          // Event/banquet halls
+  SUITE             // Multi-room suites
+  OTHER
+}
+
+enum CourtSubtype {
+  TENNIS
+  BASKETBALL
+  VOLLEYBALL
+  BADMINTON
+  SQUASH
+  RACQUETBALL
+  PICKLEBALL
+  MULTIPURPOSE
+  OTHER
+}
+
+enum DiningSubtype {
+  FINE_DINING
+  CASUAL_DINING
+  CAFE
+  BAR
+  LOUNGE
+  BUFFET
+  PRIVATE_DINING
+  FOOD_COURT
+  OTHER
+}
+
+enum FitnessSubtype {
+  WEIGHT_ROOM
+  CARDIO_AREA
+  YOGA_STUDIO
+  SPIN_STUDIO
+  CROSSFIT_BOX
+  PILATES_STUDIO
+  MULTIPURPOSE
+  OTHER
+}
+
+enum ParkingSubtype {
+  COVERED
+  OPEN_LOT
+  GARAGE
+  VALET
+  EV_CHARGING
+  DISABLED
+  MOTORCYCLE
+  BICYCLE
+  OTHER
+}
+
+enum AmenitySubtype {
+  SWIMMING_POOL
+  HOT_TUB
+  SAUNA
+  STEAM_ROOM
+  SPA
+  LIBRARY
+  BUSINESS_CENTER
+  GAME_ROOM
+  LOUNGE
+  ROOFTOP
+  GARDEN
+  OTHER
+}
+
 enum FacilityStatus {
   AVAILABLE         // Ready to be reserved/used
   OCCUPIED          // Currently in use
@@ -50,14 +134,17 @@ model Facility {
   rateTypeId      String?         @db.ObjectId
   rateType        RateType?       @relation(fields: [rateTypeId], references: [id])
   
+  // Hierarchical classification
+  spaceType      SpaceType?
+  subtype        String?  // Stores the appropriate subtype enum value as string
+
   // Instance-specific attributes (overrides facilityType)
   attributes      Json?
 
   // Hierarchical classification
-  spaceType      SpaceType?	
-  subtype        String?  // Stores the appropriate subtype enum value as string
+ 
 
-  // Polymorphic metadata based on facilityType.spaceType + facilityType.subtype
+  // Polymorphic metadata based on spaceType + subtype
   // Examples:
   // - ROOM + GUEST_ROOM: {bedType, bedCount, maxOccupancy, roomFeatures, amenities}
   // - ROOM + CONFERENCE_ROOM: {seatingCapacity, layout, hasProjector, hasVideoConferencing}
@@ -84,4 +171,6 @@ model Facility {
   @@index([locationId])
   @@index([rateTypeId])
   @@index([status])
+  @@index([spaceType])
+  @@index([subtype])
 }

@@ -1,0 +1,112 @@
+enum MatchEventStatus {
+  DRAFT           // Event created but not yet published
+  OPEN            // Accepting participants
+  FULL            // All slots filled, accepting waitlist
+  CONFIRMED       // Event confirmed, all participants confirmed
+  IN_PROGRESS     // Event is currently happening
+  COMPLETED       // Event has finished
+  CANCELLED       // Event was cancelled
+}
+
+enum ParticipantStatus {
+  PENDING         // Request to join pending approval
+  ACCEPTED        // Accepted into the event
+  REJECTED        // Request rejected
+  WAITLIST        // On waitlist (event full)
+  CONFIRMED       // Confirmed attendance
+  CHECKED_IN      // Attended the event
+  NO_SHOW         // Did not attend
+  LEFT            // Left the event early
+}
+
+model MatchEvent {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Link to reservation (required)
+  reservation         Reservation         @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId       String              @unique @db.ObjectId
+  
+  // Event creator (the person who created the reservation and event)
+  createdBy           String?             @db.ObjectId // User ID
+  
+  // Organization identifier
+  organizationId      String?
+  
+  // Event details
+  title               String              // e.g., "Basketball 5v5"
+  description         String?             // Additional details about the event
+  
+  // Participant management
+  maxParticipants     Int                 @default(10) // Maximum number of participants
+  minParticipants     Int?                @default(2)  // Minimum required to proceed
+  allowWaitlist       Boolean             @default(true) // Whether to allow waitlist
+  
+  // Status and visibility
+  status              MatchEventStatus    @default(DRAFT)
+  isPublic            Boolean             @default(true) // Can others discover this event
+  
+  // Auto-accept participants or require approval
+  autoAccept          Boolean             @default(false) // If true, automatically accept join requests
+  
+  // Event metadata
+  skillLevel          String?             // e.g., "BEGINNER", "INTERMEDIATE", "ADVANCED"
+  genderPreference    String?             // e.g., "MIXED", "MALE", "FEMALE", null for any
+  ageRange            Json?               // e.g., {min: 18, max: 50}
+  
+  // Additional rules/notes
+  rules               String?             // Special rules or requirements
+  requirements        String?             // What participants need to bring/prepare
+  
+  // Relationships
+  participants        MatchParticipant[]
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  // Note: reservationId already has @unique which creates an index
+  @@index([createdBy])
+  @@index([status])
+  @@index([organizationId])
+  @@index([isPublic, status])
+}
+
+model MatchParticipant {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Link to match event
+  matchEvent          MatchEvent          @relation(fields: [matchEventId], references: [id], onDelete: Cascade)
+  matchEventId        String              @db.ObjectId
+  
+  // User/Person joining the event
+  userId              String?             @db.ObjectId // User ID if logged in
+  personId            String?             @db.ObjectId // Person ID if available
+  
+  // Participant status
+  status              ParticipantStatus   @default(PENDING)
+  
+  // Optional: Link to guest record if participant was added via guest system
+  guestId             String?             @db.ObjectId
+  
+  // Timestamps
+  joinedAt            DateTime            @default(now())
+  acceptedAt          DateTime?
+  confirmedAt         DateTime?
+  checkedInAt         DateTime?
+  leftAt              DateTime?
+  
+  // Notes
+  notes               String?             // Notes from participant or organizer
+  
+  // Metadata
+  metadata            Json?               // Additional flexible data
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  @@unique([matchEventId, userId]) // Prevent duplicate joins
+  @@index([matchEventId])
+  @@index([userId])
+  @@index([status])
+  @@index([matchEventId, status])
+}
+

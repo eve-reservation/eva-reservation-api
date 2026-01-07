@@ -61,41 +61,11 @@ export const controller = (prisma: PrismaClient) => {
 		}
 
 		try {
-			// Check for unique code within organization if code is provided
-			if (validation.data.code) {
-				const existingFacilityType = await prisma.facilityType.findFirst({
-					where: {
-						code: validation.data.code,
-						organizationId: validation.data.organizationId,
-					},
-				});
-
-				if (existingFacilityType) {
-					const errorResponse = buildErrorResponse(
-						"A facilityType with this code already exists in this organization",
-						409,
-						[
-							{
-								field: "code",
-								message: `Duplicate code: A facilityType with code "${validation.data.code}" already exists for this organization`,
-							},
-						],
-					);
-					res.status(409).json(errorResponse);
-					return;
-				}
-			}
-
 			// Prepare data for Prisma
 			const facilityType = await prisma.facilityType.create({
 				data: {
 					name: validation.data.name,
-					code: validation.data.code,
-					description: validation.data.description,
-					spaceType: validation.data.spaceType,
-					subtype: validation.data.subtype,
 					organizationId: validation.data.organizationId,
-					path: validation.data.path,
 				},
 			});
 			facilityTypeLogger.info(`FacilityType created successfully: ${facilityType.id}`);
@@ -124,7 +94,6 @@ export const controller = (prisma: PrismaClient) => {
 				changesAfter: {
 					id: facilityType.id,
 					name: facilityType.name,
-					description: facilityType.description,
 					createdAt: facilityType.createdAt,
 					updatedAt: facilityType.updatedAt,
 				},
@@ -187,8 +156,8 @@ export const controller = (prisma: PrismaClient) => {
 			// Base where clause
 			const whereClause: Prisma.FacilityTypeWhereInput = {};
 
-			// search fields sample ("name", "description", "code")
-			const searchFields = ["name", "description", "code", "spaceType", "subtype"];
+			// search fields
+			const searchFields = ["name"];
 			if (query) {
 				const searchConditions = buildSearchConditions("FacilityType", query, searchFields);
 				if (searchConditions.length > 0) {
@@ -419,38 +388,6 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			const validatedData = validationResult.data;
-
-			// Check for unique code within organization if code is being updated
-			if (
-				validatedData.code !== undefined &&
-				validatedData.code !== existingFacilityType.code
-			) {
-				const organizationIdToUse =
-					validatedData.organizationId || existingFacilityType.organizationId;
-
-				const existingWithCode = await prisma.facilityType.findFirst({
-					where: {
-						code: validatedData.code,
-						organizationId: organizationIdToUse,
-						id: { not: id }, // Exclude the current facilityType
-					},
-				});
-
-				if (existingWithCode) {
-					const errorResponse = buildErrorResponse(
-						"A facilityType with this code already exists in this organization",
-						409,
-						[
-							{
-								field: "code",
-								message: `Duplicate code: A facilityType with code "${validatedData.code}" already exists for this organization`,
-							},
-						],
-					);
-					res.status(409).json(errorResponse);
-					return;
-				}
-			}
 
 			facilityTypeLogger.info(`Updating facilityType: ${id}`);
 

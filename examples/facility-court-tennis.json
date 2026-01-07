@@ -1,0 +1,28 @@
+{
+	"facilityTypeId": "507f1f77bcf86cd799439018",
+	"identifier": "Tennis Court 1",
+	"displayName": "Outdoor Tennis Court - Center Court",
+	"organizationId": "507f1f77bcf86cd799439011",
+	"locationId": "507f1f77bcf86cd799439025",
+	"spaceType": "COURT",
+	"subtype": "TENNIS",
+	"status": "AVAILABLE",
+	"rateTypeId": "507f1f77bcf86cd799439030",
+	"metadata": {
+		"sportType": "Tennis",
+		"surfaceType": "Hardcourt",
+		"isIndoor": false,
+		"hasLighting": true,
+		"maxPlayers": 4,
+		"equipmentProvided": ["Tennis Balls", "Net", "Rackets (available for rent)"],
+		"openingHours": "7:00 AM - 10:00 PM",
+		"courtSize": "Standard"
+	},
+	"images": [
+		{
+			"name": "Tennis Court View",
+			"url": "https://example.com/images/tennis-court-1.jpg",
+			"type": "COVER"
+		}
+	]
+}

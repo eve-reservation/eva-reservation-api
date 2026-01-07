@@ -1,0 +1,153 @@
+{
+  "description": "Complete flow to create a reservation for a basketball court and then create a match event",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Create Reservation",
+      "method": "POST",
+      "endpoint": "/api/reservation",
+      "description": "First, create a reservation for the basketball court facility",
+      "requestBody": {
+        "facilityId": "695b113d92807cb6ada994a0",
+        "organizationId": "507f1f77bcf86cd799439011",
+        "status": "CONFIRMED",
+        "guestCount": 1,
+        "purpose": "Basketball match",
+        "eventName": "5v5 Basketball Game",
+        "bookingPeriod": {
+          "startDateTime": "2026-01-15T18:00:00Z",
+          "endDateTime": "2026-01-15T20:00:00Z",
+          "numberOfHours": 2,
+          "numberOfDays": 0
+        },
+        "specialRequests": "Need basketballs and scoreboard",
+        "bookingSource": "web"
+      },
+      "expectedResponse": {
+        "status": "success",
+        "message": "Reservation created successfully",
+        "data": {
+          "reservation": {
+            "id": "695b1234e64fd899629d3da0",
+            "confirmationCode": "RES-ABC123",
+            "facilityId": "695b113d92807cb6ada994a0",
+            "status": "CONFIRMED",
+            "bookingPeriod": {
+              "startDateTime": "2026-01-15T18:00:00.000Z",
+              "endDateTime": "2026-01-15T20:00:00.000Z",
+              "numberOfHours": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "title": "Create Match Event",
+      "method": "POST",
+      "endpoint": "/api/match-event",
+      "description": "Create a match event linked to the reservation. This allows other users to join.",
+      "requestBody": {
+        "reservationId": "695b1234e64fd899629d3da0",
+        "organizationId": "507f1f77bcf86cd799439011",
+        "title": "Basketball 5v5 - Evening Game",
+        "description": "Looking for 9 more players for a friendly 5v5 basketball game. All skill levels welcome!",
+        "maxParticipants": 10,
+        "minParticipants": 6,
+        "allowWaitlist": true,
+        "status": "OPEN",
+        "isPublic": true,
+        "autoAccept": true,
+        "skillLevel": "INTERMEDIATE",
+        "genderPreference": "MIXED",
+        "ageRange": {
+          "min": 18,
+          "max": 50
+        },
+        "rules": "Standard basketball rules. Teams will be divided evenly.",
+        "requirements": "Bring your own water bottle. Basketballs and hoops provided."
+      },
+      "expectedResponse": {
+        "status": "success",
+        "message": "Match event created successfully",
+        "data": {
+          "matchEvent": {
+            "id": "695b5678e64fd899629d3da1",
+            "reservationId": "695b1234e64fd899629d3da0",
+            "title": "Basketball 5v5 - Evening Game",
+            "status": "OPEN",
+            "maxParticipants": 10,
+            "currentParticipants": 1
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "title": "Join Match Event (Other Users)",
+      "method": "POST",
+      "endpoint": "/api/match-event/{matchEventId}/join",
+      "description": "Other users can discover and join this public match event",
+      "requestBody": {
+        "notes": "I'm an experienced player, would love to join!"
+      },
+      "exampleUrl": "/api/match-event/695b5678e64fd899629d3da1/join",
+      "expectedResponse": {
+        "status": "success",
+        "message": "Successfully joined match event. Status: ACCEPTED",
+        "data": {
+          "participant": {
+            "id": "695b9999e64fd899629d3da2",
+            "matchEventId": "695b5678e64fd899629d3da1",
+            "userId": "695b8888e64fd899629d3da3",
+            "status": "ACCEPTED",
+            "joinedAt": "2026-01-06T09:20:00.000Z"
+          }
+        }
+      }
+    },
+    {
+      "step": 4,
+      "title": "Get Match Event Details",
+      "method": "GET",
+      "endpoint": "/api/match-event/{matchEventId}",
+      "description": "View match event details including all participants",
+      "exampleUrl": "/api/match-event/695b5678e64fd899629d3da1",
+      "expectedResponse": {
+        "status": "success",
+        "data": {
+          "matchEvent": {
+            "id": "695b5678e64fd899629d3da1",
+            "title": "Basketball 5v5 - Evening Game",
+            "status": "OPEN",
+            "maxParticipants": 10,
+            "reservation": {
+              "id": "695b1234e64fd899629d3da0",
+              "facility": {
+                "identifier": "COURT-05",
+                "displayName": "Basket Ba;",
+                "metadata": {
+                  "sportType": "Basketball",
+                  "surfaceType": "Hardcourt",
+                  "maxPlayers": 10
+                }
+              },
+              "bookingPeriod": {
+                "startDateTime": "2026-01-15T18:00:00.000Z",
+                "endDateTime": "2026-01-15T20:00:00.000Z"
+              }
+            },
+            "participants": [
+              {
+                "id": "695b1111e64fd899629d3da2",
+                "userId": "695b2222e64fd899629d3da3",
+                "status": "ACCEPTED"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+

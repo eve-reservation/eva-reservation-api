@@ -3,92 +3,8 @@ import { z } from "zod";
 export const ObjectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId format");
 
 // ============================================================================
-// ENUMS - Matching Prisma Schema
+// ENUMS - Note: SpaceType and Subtype enums moved to facility.zod.ts
 // ============================================================================
-
-export const SpaceTypeSchema = z.enum([
-	"ROOM",
-	"COURT",
-	"DINING",
-	"FITNESS",
-	"PARKING",
-	"AMENITY",
-	"OUTDOOR",
-	"OTHER",
-]);
-
-export const RoomSubtypeSchema = z.enum([
-	"GUEST_ROOM",
-	"CONFERENCE_ROOM",
-	"OFFICE",
-	"STUDIO",
-	"CLASSROOM",
-	"BALLROOM",
-	"SUITE",
-	"OTHER",
-]);
-
-export const CourtSubtypeSchema = z.enum([
-	"TENNIS",
-	"BASKETBALL",
-	"VOLLEYBALL",
-	"BADMINTON",
-	"SQUASH",
-	"RACQUETBALL",
-	"PICKLEBALL",
-	"MULTIPURPOSE",
-	"OTHER",
-]);
-
-export const DiningSubtypeSchema = z.enum([
-	"FINE_DINING",
-	"CASUAL_DINING",
-	"CAFE",
-	"BAR",
-	"LOUNGE",
-	"BUFFET",
-	"PRIVATE_DINING",
-	"FOOD_COURT",
-	"OTHER",
-]);
-
-export const FitnessSubtypeSchema = z.enum([
-	"WEIGHT_ROOM",
-	"CARDIO_AREA",
-	"YOGA_STUDIO",
-	"SPIN_STUDIO",
-	"CROSSFIT_BOX",
-	"PILATES_STUDIO",
-	"MULTIPURPOSE",
-	"OTHER",
-]);
-
-export const ParkingSubtypeSchema = z.enum([
-	"COVERED",
-	"OPEN_LOT",
-	"GARAGE",
-	"VALET",
-	"EV_CHARGING",
-	"DISABLED",
-	"MOTORCYCLE",
-	"BICYCLE",
-	"OTHER",
-]);
-
-export const AmenitySubtypeSchema = z.enum([
-	"SWIMMING_POOL",
-	"HOT_TUB",
-	"SAUNA",
-	"STEAM_ROOM",
-	"SPA",
-	"LIBRARY",
-	"BUSINESS_CENTER",
-	"GAME_ROOM",
-	"LOUNGE",
-	"ROOFTOP",
-	"GARDEN",
-	"OTHER",
-]);
 
 // ============================================================================
 // FACILITY IMAGE TYPE ENUM & SCHEMA
@@ -136,13 +52,8 @@ const preprocessFacilityTypeData = z.preprocess(
 			.string()
 			.min(1, "Name is required and must be a non-empty string")
 			.max(255, "Name must be at most 255 characters"),
-		code: z.string().max(50, "Code must be at most 50 characters").optional(),
-		description: z.string().max(1000, "Description must be at most 1000 characters").optional(),
-		spaceType: SpaceTypeSchema.optional(),
-		subtype: z.string().optional(),
 		organizationId: ObjectIdSchema.optional(),
 		rateTypeId: ObjectIdSchema.optional(),
-		path: z.string().optional(),
 	}),
 );
 
@@ -163,15 +74,7 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 				.min(1, "Name is required and must be a non-empty string")
 				.max(255, "Name must be at most 255 characters")
 				.optional(),
-			code: z.string().max(50, "Code must be at most 50 characters").optional(),
-			description: z
-				.string()
-				.max(1000, "Description must be at most 1000 characters")
-				.optional(),
-			spaceType: SpaceTypeSchema.optional(),
-			subtype: z.string().optional(),
 			organizationId: ObjectIdSchema.optional(),
-			path: z.string().optional(),
 		})
 		.partial(),
 );
@@ -179,35 +82,20 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 export const FacilityTypeResponseSchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	code: z.string().optional(),
-	description: z.string().optional(),
-	spaceType: SpaceTypeSchema.optional(),
-	subtype: z.string().optional(),
 	organizationId: z.string().optional(),
 	rateTypeId: z.string().optional(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
-	path: z.string().optional(),
 });
 
 export const FacilityTypeQuerySchema = z.object({
 	organizationId: ObjectIdSchema.optional(),
-	spaceType: SpaceTypeSchema.optional(),
-	subtype: z.string().optional(),
 	name: z.string().optional(),
 });
 
 // ============================================================================
 // EXPORT TYPES
 // ============================================================================
-
-export type SpaceType = z.infer<typeof SpaceTypeSchema>;
-export type RoomSubtype = z.infer<typeof RoomSubtypeSchema>;
-export type CourtSubtype = z.infer<typeof CourtSubtypeSchema>;
-export type DiningSubtype = z.infer<typeof DiningSubtypeSchema>;
-export type FitnessSubtype = z.infer<typeof FitnessSubtypeSchema>;
-export type ParkingSubtype = z.infer<typeof ParkingSubtypeSchema>;
-export type AmenitySubtype = z.infer<typeof AmenitySubtypeSchema>;
 
 export type FacilityImageType = z.infer<typeof FacilityImageTypeSchema>;
 export type FacilityImage = z.infer<typeof FacilityImageSchema>;

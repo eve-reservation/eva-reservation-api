@@ -1,0 +1,144 @@
+{
+  "description": "Example: Join a match event with a group of unregistered users",
+  "scenarios": [
+    {
+      "scenario": "User joins with 4 unregistered friends",
+      "method": "POST",
+      "endpoint": "/api/match-event/{matchEventId}/join",
+      "requestBody": {
+        "userId": "507f1f77bcf86cd799439011",
+        "notes": "Joining with my basketball team",
+        "groupMembers": [
+          {
+            "firstName": "John",
+            "lastName": "Doe",
+            "email": "john.doe@example.com",
+            "phone": "+1234567890"
+          },
+          {
+            "firstName": "Jane",
+            "lastName": "Smith",
+            "email": "jane.smith@example.com",
+            "phone": "+1234567891"
+          },
+          {
+            "firstName": "Mike",
+            "lastName": "Johnson",
+            "email": "mike.johnson@example.com"
+          },
+          {
+            "firstName": "Sarah",
+            "lastName": "Williams",
+            "phone": "+1234567893"
+          }
+        ]
+      },
+      "response": {
+        "status": "success",
+        "message": "Successfully joined match event with 5 participant(s). Status: ACCEPTED",
+        "data": {
+          "participants": [
+            {
+              "id": "695b1111e64fd899629d3da2",
+              "userId": "507f1f77bcf86cd799439011",
+              "status": "ACCEPTED",
+              "metadata": {
+                "isGroupLeader": true
+              }
+            },
+            {
+              "id": "695b1112e64fd899629d3da3",
+              "personId": "695b2222e64fd899629d3da4",
+              "status": "ACCEPTED",
+              "metadata": {
+                "isGroupMember": true,
+                "groupLeader": "507f1f77bcf86cd799439011"
+              }
+            }
+          ],
+          "totalParticipants": 5,
+          "groupMembers": 4
+        }
+      }
+    },
+    {
+      "scenario": "Group join without main user (all unregistered)",
+      "method": "POST",
+      "endpoint": "/api/match-event/{matchEventId}/join",
+      "requestBody": {
+        "notes": "Group of friends want to join together",
+        "groupMembers": [
+          {
+            "firstName": "Player",
+            "lastName": "One",
+            "email": "player1@example.com"
+          },
+          {
+            "firstName": "Player",
+            "lastName": "Two",
+            "email": "player2@example.com"
+          },
+          {
+            "firstName": "Player",
+            "lastName": "Three",
+            "phone": "+1234567894"
+          },
+          {
+            "firstName": "Player",
+            "lastName": "Four",
+            "email": "player4@example.com",
+            "phone": "+1234567895"
+          }
+        ]
+      },
+      "response": {
+        "status": "success",
+        "message": "Successfully joined match event with 4 participant(s). Status: ACCEPTED",
+        "data": {
+          "participants": [
+            {
+              "id": "695b1113e64fd899629d3da5",
+              "personId": "695b2223e64fd899629d3da6",
+              "status": "ACCEPTED"
+            }
+          ],
+          "totalParticipants": 4,
+          "groupMembers": 4
+        }
+      }
+    },
+    {
+      "scenario": "Single user join (no group)",
+      "method": "POST",
+      "endpoint": "/api/match-event/{matchEventId}/join",
+      "requestBody": {
+        "userId": "507f1f77bcf86cd799439011",
+        "notes": "I'd love to join!"
+      },
+      "response": {
+        "status": "success",
+        "message": "Successfully joined match event with 1 participant(s). Status: ACCEPTED",
+        "data": {
+          "participants": [
+            {
+              "id": "695b1114e64fd899629d3da7",
+              "userId": "507f1f77bcf86cd799439011",
+              "status": "ACCEPTED"
+            }
+          ],
+          "totalParticipants": 1,
+          "groupMembers": 0
+        }
+      }
+    }
+  ],
+  "notes": [
+    "groupMembers array contains unregistered users who will be added as Person records",
+    "Each group member requires firstName and lastName (email and phone are optional)",
+    "Person records are automatically created for group members",
+    "All group members get the same status (ACCEPTED/PENDING/WAITLIST) based on event capacity",
+    "The main user (userId/personId) is marked as group leader in metadata",
+    "Group members are linked to the group leader in their metadata"
+  ]
+}
+
