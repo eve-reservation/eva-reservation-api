@@ -195,3 +195,4 @@ PATCH /api/match-event/{id}
 | Event has 2 spots, approve group of 5 | ❌ Error: Exceeds capacity |
 | Event has 5 spots, approve group of 3 | ✅ All approved            |
 | Event has 1 spot, approve group of 5  | ❌ Error: Exceeds capacity |
+
