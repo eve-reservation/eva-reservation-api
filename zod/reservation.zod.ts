@@ -49,12 +49,19 @@ const TotalsSchema = z.object({
 	totalAmount: z.number(),
 });
 
+const ReservationUserSchema = z.object({
+	userId: z.string(),
+	firstName: z.string().optional().nullable(),
+	lastName: z.string().optional().nullable(),
+	email: z.string().email().optional().nullable(),
+});
+
 // Reservation schema aligned to Prisma Mongo model
 export const ReservationSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
 	// Organization identifier (required in Prisma model)
 	organizationId: z.string().min(1).optional().nullable(),
-	userId: z.string().optional().nullable(),
+	user: ReservationUserSchema.optional().nullable(),
 	facilityId: z.string().refine((val) => isValidObjectId(val)),
 	status: ReservationStatusEnum.optional().default("PENDING"),
 	guestCount: z.number().int().optional().default(1),

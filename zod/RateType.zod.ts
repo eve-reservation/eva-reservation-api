@@ -22,7 +22,7 @@ export const RateTypeSchema = z.object({
 	// Organization identifier (required in Prisma model)
 	organizationId: z.string().min(1),
 	baseRate: z.number(),
-	currency: z.string().min(1).default("USD"),
+	currency: z.string().min(1).default("PHP"),
 	rateUnit: RateUnitEnum.optional(),
 	serviceFee: z.number().optional(),
 	tax: z.number().optional(),
@@ -31,7 +31,7 @@ export const RateTypeSchema = z.object({
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
 });
-
+	
 export type RateType = z.infer<typeof RateTypeSchema>;
 
 // Create RateType Schema (exclude id/createdAt/updatedAt)

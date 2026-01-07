@@ -47,13 +47,20 @@ type Totals {
   totalAmount Float
 }
 
+type ReservationUser {
+  userId String
+  firstName String?
+  lastName String?
+  email String?
+}
+
 model Reservation {
   id              String            @id @default(auto()) @map("_id") @db.ObjectId
   
   // Organization identifier
   organizationId  String?
   
-  userId          String?
+  user            ReservationUser             
   
   facility        Facility          @relation(fields: [facilityId], references: [id])
   facilityId      String            @db.ObjectId

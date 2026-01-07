@@ -17,7 +17,7 @@ model RateType {
   organizationId  String
   
   baseRate        Float
-  currency        String          @default("USD")
+  currency        String          @default("PHP")
   
   // Rate unit (hourly, daily, weekly, monthly, per-session, per-person, flat-rate)
   rateUnit        RateUnit?
