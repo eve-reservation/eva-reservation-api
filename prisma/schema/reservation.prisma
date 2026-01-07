@@ -47,7 +47,7 @@ type Totals {
   totalAmount Float
 }
 
-type User {
+type ReservationUser {
   userId String
   firstName String?
   lastName String?
@@ -60,7 +60,7 @@ model Reservation {
   // Organization identifier
   organizationId  String?
   
-  user            User             
+  user            ReservationUser             
   
   facility        Facility          @relation(fields: [facilityId], references: [id])
   facilityId      String            @db.ObjectId
