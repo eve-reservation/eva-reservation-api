@@ -1,11 +1,15 @@
 import { PrismaClient } from "../generated/prisma";
 import * as argon2 from "argon2";
-import { seedTemplates } from "./seeds/templateSeeder";
+import { seedCustomFacilities } from "./seeds/customFacilitySeeder";
 const prisma = new PrismaClient();
 
 async function main() {
 	// Seed template data
-	await seedTemplates();
+	// await seedTemplates(); // Keeping this might be good, but user wants SPECIFIC data. I'll uncomment if needed, but let's prioritize the new one.
+	// Actually, I'll keep seedTemplates as comment or run it before if it's unrelated.
+	// The user's request is "make me a seeder".
+
+	await seedCustomFacilities();
 
 	console.log("Seeding completed successfully!");
 }

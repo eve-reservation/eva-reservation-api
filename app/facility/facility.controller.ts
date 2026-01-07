@@ -423,8 +423,9 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			if (!facility) {
+				const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
 				const query: Prisma.FacilityFindFirstArgs = {
-					where: { id },
+					where: isObjectId ? { id } : { identifier: id },
 				};
 
 				query.select = getNestedFields(fields);
@@ -664,6 +665,7 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// Get existing facility to compare images
+			const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
 			const existingFacility = await prisma.facility.findFirst({
 				where: { id },
 			});
@@ -803,6 +805,7 @@ export const controller = (prisma: PrismaClient) => {
 			// Update request data with final images list
 			requestData.images = imagesToKeep;
 
+			console.log(requestData);
 			const validationResult = UpdateFacilitySchema.safeParse(requestData);
 
 			if (!validationResult.success) {
@@ -925,7 +928,7 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			const updatedFacility = await prisma.facility.update({
-				where: { id },
+				where: { id: existingFacility.id },
 				data: prismaData as any,
 			});
 

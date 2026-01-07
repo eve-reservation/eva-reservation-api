@@ -190,7 +190,7 @@ export const SuiteMetadataSchema = z.object({
 
 // COURT Metadata Schemas
 export const SportsCourtMetadataSchema = z.object({
-	sportType: z.string(), // e.g., "Tennis", "Basketball", "Volleyball"
+	sportType: z.string().optional(), // e.g., "Tennis", "Basketball", "Volleyball"
 	surfaceType: z.string().optional(), // e.g., "Clay", "Hardcourt", "Grass", "Wooden"
 	isIndoor: z.boolean().optional().default(false),
 	hasLighting: z.boolean().optional().default(false),

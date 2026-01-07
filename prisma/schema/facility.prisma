@@ -141,6 +141,9 @@ model Facility {
   // Instance-specific attributes (overrides facilityType)
   attributes      Json?
 
+  // Hierarchical classification
+ 
+
   // Polymorphic metadata based on spaceType + subtype
   // Examples:
   // - ROOM + GUEST_ROOM: {bedType, bedCount, maxOccupancy, roomFeatures, amenities}
