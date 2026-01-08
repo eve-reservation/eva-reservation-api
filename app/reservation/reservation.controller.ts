@@ -68,6 +68,67 @@ const convertBookingPeriodToUTC = (bookingPeriod: any) => {
 	return converted;
 };
 
+/**
+ * Derives a short sport code from facility attributes.
+ * Defaults to "FB" for COURT subtypes commonly used for field/basketball-style sports,
+ * and falls back to "XX" when a specific mapping is not available.
+ */
+const deriveSportCodeFromFacility = (facility: any): string => {
+	const subtype: string = (facility?.subtype || "").toString().toUpperCase();
+	const spaceType: string = (facility?.spaceType || "").toString().toUpperCase();
+
+	// Basic mappings; adjust as needed for your domain
+	if (subtype.includes("BASKETBALL")) return "BB";
+	if (subtype.includes("FOOTBALL")) return "FB";
+	if (subtype.includes("VOLLEYBALL")) return "VB";
+	if (subtype.includes("TENNIS")) return "TN";
+	if (subtype.includes("BADMINTON")) return "BD";
+	if (subtype.includes("SQUASH")) return "SQ";
+	if (subtype.includes("PICKLEBALL")) return "PB";
+	if (spaceType === "COURT") return "CT";
+
+	return "XX";
+};
+
+/**
+ * Generates a human-friendly reservation number.
+ *
+ * Format: SP5 + YYYYMMDD + sportCode + dailySequence (3 digits)
+ * Example: SP520260107FB042
+ */
+const generateReservationNumber = async (prisma: PrismaClient, params: {
+	bookingDate: Date;
+	sportCode: string;
+}): Promise<string> => {
+	const PLATFORM_CODE = "SP5";
+	const date = params.bookingDate;
+
+	// Date portion (YYYYMMDD)
+	const year = date.getUTCFullYear();
+	const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+	const day = date.getUTCDate().toString().padStart(2, "0");
+	const datePart = `${year}${month}${day}`;
+
+	const sportCode = (params.sportCode || "XX").toUpperCase();
+
+	// Daily sequence based on createdAt for that UTC day
+	const startOfDay = new Date(Date.UTC(year, date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+	const endOfDay = new Date(Date.UTC(year, date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+	const existingCount = await prisma.reservation.count({
+		where: {
+			createdAt: {
+				gte: startOfDay,
+				lte: endOfDay,
+			},
+		},
+	});
+
+	const sequence = (existingCount + 1).toString().padStart(3, "0");
+
+	return `${PLATFORM_CODE}${datePart}${sportCode}${sequence}`;
+};
+
 export const controller = (prisma: PrismaClient) => {
 	const create = async (req: Request, res: Response, _next: NextFunction) => {
 		let requestData = req.body;
@@ -242,8 +303,16 @@ export const controller = (prisma: PrismaClient) => {
 				};
 			}
 
+			// Generate reservationNumber using booking date + sport code + daily sequence
+			const sportCode = deriveSportCodeFromFacility(facility);
+			const reservationNumber = await generateReservationNumber(prisma, {
+				bookingDate: utcStartDateTime,
+				sportCode,
+			});
+
 			// Exclude guests from create data - guests are managed separately via Guest model
 			const { guests, ...createData } = data as any;
+			(createData as any).reservationNumber = reservationNumber;
 			const reservation = await prisma.reservation.create({ data: createData });
 			reservationLogger.info(`Reservation created successfully: ${reservation.id}`);
 
@@ -333,7 +402,13 @@ export const controller = (prisma: PrismaClient) => {
 			const whereClause: Prisma.ReservationWhereInput = {};
 
 			// search fields sample ("confirmationCode", "bookingSource", "status")
-			const searchFields = ["confirmationCode", "bookingSource", "status", "currency"];
+			const searchFields = [
+				"confirmationCode",
+				"reservationNumber",
+				"bookingSource",
+				"status",
+				"currency",
+			];
 			if (query) {
 				const searchConditions = buildSearchConditions("Reservation", query, searchFields);
 				if (searchConditions.length > 0) {

@@ -72,6 +72,7 @@ export const ReservationSchema = z.object({
 	specialRequests: z.string().optional(),
 	internalNotes: z.string().optional(),
 	bookingSource: z.string().optional(),
+	reservationNumber: z.string().optional(),
 	confirmationCode: z.string().optional(),
 	checkedInBy: z.string().optional(),
 	checkedOutBy: z.string().optional(),

@@ -84,6 +84,13 @@ model Reservation {
   
   bookingSource   String?
   confirmationCode String           @unique @default(cuid())
+  // Human-friendly reservation number (e.g., "SP520260107FB042")
+  // Format breakdown:
+  // - SP5       : Platform / app code
+  // - 20260107  : Reservation date (YYYYMMDD)
+  // - FB        : Sport code
+  // - 042       : Daily sequence number
+  reservationNumber String?         @unique
   
   checkedInBy     String?
   checkedOutBy    String?
