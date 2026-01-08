@@ -54,7 +54,7 @@ model MatchEvent {
   ageRange            Json?               // e.g., {min: 18, max: 50}
   
   // Additional rules/notes
-  rules               String?             // Special rules or requirements
+  rules               String[]            // Special rules or requirements
   requirements        String?             // What participants need to bring/prepare
   
   // Relationships
