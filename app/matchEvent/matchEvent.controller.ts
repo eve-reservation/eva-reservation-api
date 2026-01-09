@@ -87,7 +87,19 @@ export const controller = (prisma: PrismaClient) => {
 			const matchEvent = await prisma.matchEvent.create({
 				data: {
 					...validation.data,
-					createdBy: userId || undefined,
+					createdBy:
+						// If auth user exists, prioritize constructing createdBy from auth context (secure)
+						userId
+							? {
+									userId,
+									firstName: (req as any).user?.firstName,
+									lastName: (req as any).user?.lastName,
+									email: (req as any).user?.email,
+								}
+							: // Fallback to payload's createdBy if no auth user (e.g. admin or testing),
+								// or if we want to allow payload to override some fields?
+								// For now, if userId is missing, use payload.
+								validation.data.createdBy || undefined,
 					organizationId: organizationId || reservation.organizationId || undefined,
 					status: validation.data.status || "OPEN", // Default to OPEN if not specified
 				},
@@ -163,7 +175,7 @@ export const controller = (prisma: PrismaClient) => {
 					participants: {
 						select: {
 							id: true,
-							userId: true,
+							user: true,
 							status: true,
 							joinedAt: true,
 						},
@@ -371,7 +383,10 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// Check if user is the creator (simple authorization check)
-			if (existingMatchEvent.createdBy && existingMatchEvent.createdBy !== userId) {
+			if (
+				existingMatchEvent.createdBy?.userId &&
+				existingMatchEvent.createdBy.userId !== userId
+			) {
 				const errorResponse = buildErrorResponse(
 					"Unauthorized to update this match event",
 					403,
@@ -447,7 +462,10 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			// Check if user is the creator
-			if (existingMatchEvent.createdBy && existingMatchEvent.createdBy !== userId) {
+			if (
+				existingMatchEvent.createdBy?.userId &&
+				existingMatchEvent.createdBy.userId !== userId
+			) {
 				const errorResponse = buildErrorResponse(
 					"Unauthorized to delete this match event",
 					403,
@@ -511,7 +529,7 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Get userId from request body (public join) or from auth (authenticated join)
 			// If no userId/personId but groupMembers exist, allow joining as a group without main user
-			const userId = validation.data.userId || authUserId || undefined;
+			const userId = validation.data.user?.userId || authUserId || undefined;
 			const personId = validation.data.personId || undefined;
 			const matchEventId = validation.data.matchEventId;
 			const notes = validation.data.notes;
@@ -562,9 +580,9 @@ export const controller = (prisma: PrismaClient) => {
 			};
 
 			if (userId && personId) {
-				whereCondition.OR = [{ userId }, { personId }];
+				whereCondition.OR = [{ user: { userId } }, { personId }];
 			} else if (userId) {
-				whereCondition.userId = userId;
+				whereCondition.user = { userId };
 			} else if (personId) {
 				whereCondition.personId = personId;
 			}
@@ -662,7 +680,18 @@ export const controller = (prisma: PrismaClient) => {
 			if (userId || personId) {
 				participantsToCreate.push({
 					matchEventId,
-					userId: userId || undefined,
+					user: userId
+						? {
+								userId,
+								// We might want to fetch user details here if possible, but for now just ID
+								// Or query user service? But we don't have it here easily.
+								// Assuming basic info for now or we trust the schema validation handled it?
+								// Actually better to fetch user details from auth middleware if available
+								firstName: (req as any).user?.firstName,
+								lastName: (req as any).user?.lastName,
+								email: (req as any).user?.email,
+							}
+						: undefined,
 					personId: personId || undefined,
 					status: participantStatus,
 					notes: notes || undefined,
@@ -749,7 +778,7 @@ export const controller = (prisma: PrismaClient) => {
 			const participant = await prisma.matchParticipant.findFirst({
 				where: {
 					matchEventId: id,
-					userId,
+					user: { userId },
 					status: { notIn: ["REJECTED", "LEFT"] },
 				},
 			});
@@ -844,8 +873,8 @@ export const controller = (prisma: PrismaClient) => {
 
 			// Check if user is the event creator (allow if createdBy is null for public events)
 			if (
-				participant.matchEvent.createdBy &&
-				participant.matchEvent.createdBy !== userId &&
+				participant.matchEvent.createdBy?.userId &&
+				participant.matchEvent.createdBy.userId !== userId &&
 				userId // Only check if user is authenticated
 			) {
 				const errorResponse = buildErrorResponse(
@@ -889,7 +918,7 @@ export const controller = (prisma: PrismaClient) => {
 
 				// If approving a group leader, check if there's space for all group members too
 				if (isGroupLeader) {
-					const leaderId = participant.userId || participant.personId;
+					const leaderId = participant.user?.userId || participant.personId;
 					if (leaderId) {
 						// Find group members that would be auto-approved
 						const allParticipants = await prisma.matchParticipant.findMany({
@@ -908,7 +937,8 @@ export const controller = (prisma: PrismaClient) => {
 							return (
 								memberMetadata.groupLeader === leaderId ||
 								(memberMetadata.isGroupMember === true &&
-									(member.userId === leaderId || member.personId === leaderId))
+									(member.user?.userId === leaderId ||
+										member.personId === leaderId))
 							);
 						});
 
@@ -962,7 +992,7 @@ export const controller = (prisma: PrismaClient) => {
 			let approvedGroupMembers: any[] = [];
 			if (isGroupLeader && isApprovingToAccepted) {
 				// Find the group leader's userId or personId
-				const leaderId = participant.userId || participant.personId;
+				const leaderId = participant.user?.userId || participant.personId;
 
 				if (leaderId) {
 					// Fetch all participants for this event that are not already accepted/confirmed
@@ -985,7 +1015,7 @@ export const controller = (prisma: PrismaClient) => {
 						return (
 							memberMetadata.groupLeader === leaderId ||
 							(memberMetadata.isGroupMember === true &&
-								(member.userId === leaderId || member.personId === leaderId))
+								(member.user?.userId === leaderId || member.personId === leaderId))
 						);
 					});
 

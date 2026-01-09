@@ -29,6 +29,13 @@ export const ParticipantStatusSchema = z.enum([
 export type MatchEventStatus = z.infer<typeof MatchEventStatusSchema>;
 export type ParticipantStatus = z.infer<typeof ParticipantStatusSchema>;
 
+export const MatchParticipantUserSchema = z.object({
+	userId: z.string(),
+	firstName: z.string().optional().nullable(),
+	lastName: z.string().optional().nullable(),
+	email: z.string().email().optional().nullable(),
+});
+
 // ============================================================================
 // MATCH EVENT SCHEMAS
 // ============================================================================
@@ -44,11 +51,7 @@ const AgeRangeSchema = z
 export const MatchEventSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
 	reservationId: z.string().refine((val) => isValidObjectId(val)),
-	createdBy: z
-		.string()
-		.refine((val) => isValidObjectId(val))
-		.optional()
-		.nullable(),
+	createdBy: MatchParticipantUserSchema.optional().nullable(),
 	organizationId: z.string().min(1).optional().nullable(),
 	title: z.string().min(1),
 	description: z.string().optional().nullable(),
@@ -97,11 +100,7 @@ export type UpdateMatchEvent = z.infer<typeof UpdateMatchEventSchema>;
 export const MatchParticipantSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
 	matchEventId: z.string().refine((val) => isValidObjectId(val)),
-	userId: z
-		.string()
-		.refine((val) => isValidObjectId(val))
-		.optional()
-		.nullable(),
+	user: MatchParticipantUserSchema.optional().nullable(),
 	personId: z
 		.string()
 		.refine((val) => isValidObjectId(val))
@@ -138,10 +137,7 @@ export const CreateMatchParticipantSchema = MatchParticipantSchema.omit({
 	updatedAt: true,
 }).extend({
 	matchEventId: z.string().refine((val) => isValidObjectId(val)),
-	userId: z
-		.string()
-		.refine((val) => isValidObjectId(val))
-		.optional(),
+	user: MatchParticipantUserSchema.optional().nullable(),
 });
 
 export type CreateMatchParticipant = z.infer<typeof CreateMatchParticipantSchema>;
@@ -171,11 +167,7 @@ export type GroupMember = z.infer<typeof GroupMemberSchema>;
 export const JoinMatchEventSchema = z
 	.object({
 		matchEventId: z.string().refine((val) => isValidObjectId(val)),
-		userId: z
-			.string()
-			.refine((val) => isValidObjectId(val))
-			.optional()
-			.nullable(),
+		user: MatchParticipantUserSchema.optional().nullable(),
 		personId: z
 			.string()
 			.refine((val) => isValidObjectId(val))
@@ -185,12 +177,11 @@ export const JoinMatchEventSchema = z
 		groupMembers: z.array(GroupMemberSchema).optional(), // Group members not registered in app
 	})
 	.refine(
-		(data) =>
-			data.userId || data.personId || (data.groupMembers && data.groupMembers.length > 0),
+		(data) => data.user || data.personId || (data.groupMembers && data.groupMembers.length > 0),
 		{
 			message:
-				"Either userId/personId (for registered user) or groupMembers (for unregistered group) must be provided",
-			path: ["userId"],
+				"Either user (for registered user) or groupMembers (for unregistered group) must be provided",
+			path: ["user"],
 		},
 	);
 
