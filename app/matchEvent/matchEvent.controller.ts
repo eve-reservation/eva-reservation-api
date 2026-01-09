@@ -288,11 +288,7 @@ export const controller = (prisma: PrismaClient) => {
 			}
 
 			findManyQuery.include = {
-				reservation: {
-					include: {
-						facility: true,
-					},
-				},
+				reservation: true,
 				participants: {
 					where: {
 						status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
@@ -325,7 +321,18 @@ export const controller = (prisma: PrismaClient) => {
 				if (groupBy) {
 					responseData.groups = groupedData;
 				} else {
-					responseData.matchEvents = matchEvents;
+					// enrich match events with spots left
+					responseData.matchEvents = matchEvents.map((event: any) => {
+						const confirmedParticipantsCount = event._count?.participants || 0;
+						const spotsLeft = Math.max(
+							0,
+							event.maxParticipants - confirmedParticipantsCount,
+						);
+						return {
+							...event,
+							spotsLeft,
+						};
+					});
 				}
 			}
 			if (count) {
