@@ -65,6 +65,10 @@ export const controller = (prisma: PrismaClient) => {
 			const facilityType = await prisma.facilityType.create({
 				data: {
 					name: validation.data.name,
+					description: validation.data.description,
+					code: validation.data.code,
+					spaceType: validation.data.spaceType,
+					subtype: validation.data.subtype,
 					organizationId: validation.data.organizationId,
 				},
 			});
@@ -461,5 +465,183 @@ export const controller = (prisma: PrismaClient) => {
 		}
 	};
 
-	return { create, getAll, getById, update, remove };
+	const uploadCSV = async (req: Request, res: Response, _next: NextFunction) => {
+		try {
+			// Check if file was uploaded
+			if (!req.file) {
+				const errorResponse = buildErrorResponse("No CSV file uploaded", 400, [
+					{ field: "file", message: "Please upload a CSV file" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			facilityTypeLogger.info(`Processing CSV file: ${req.file.originalname}`);
+
+			// Parse CSV data
+			const csvParser = await import("csv-parser");
+			const { Readable } = await import("stream");
+
+			const results: any[] = [];
+
+			// Create a readable stream from the buffer
+			const stream = Readable.from(req.file.buffer.toString());
+
+			await new Promise((resolve, reject) => {
+				stream
+					.pipe(csvParser.default())
+					.on("data", (data) => results.push(data))
+					.on("end", resolve)
+					.on("error", reject);
+			});
+
+			facilityTypeLogger.info(`Parsed ${results.length} rows from CSV`);
+
+			if (results.length === 0) {
+				const errorResponse = buildErrorResponse("CSV file is empty", 400, [
+					{ field: "file", message: "The uploaded CSV file contains no data" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Validate and prepare FacilityType data
+			const facilityTypesToCreate: any[] = [];
+			const validationErrors: any[] = [];
+
+			for (let i = 0; i < results.length; i++) {
+				const row = results[i];
+				const rowNumber = i + 2; // +2 because row 1 is header and arrays are 0-indexed
+
+				try {
+					// Transform CSV row to FacilityType data
+					const facilityTypeData: any = {
+						name: row.name?.trim(),
+						description: row.description?.trim() || undefined,
+						code: row.code?.trim() || undefined,
+						spaceType: row.spaceType?.trim() || undefined,
+						subtype: row.subtype?.trim() || undefined,
+						organizationId: row.organizationId?.trim() || undefined,
+					};
+
+					// Validate against schema
+					const validation = CreateFacilityTypeSchema.safeParse(facilityTypeData);
+
+					if (!validation.success) {
+						const fieldErrors = formatZodErrors(validation.error.format());
+						validationErrors.push({
+							row: rowNumber,
+							name: row.name || "N/A",
+							errors: fieldErrors,
+						});
+						continue;
+					}
+
+					facilityTypesToCreate.push(validation.data);
+				} catch (error: any) {
+					validationErrors.push({
+						row: rowNumber,
+						name: row.name || "N/A",
+						errors: [{ field: "general", message: error.message }],
+					});
+				}
+			}
+
+			facilityTypeLogger.info(
+				`Validation complete: ${facilityTypesToCreate.length} valid, ${validationErrors.length} invalid`,
+			);
+
+			// If there are validation errors, return them
+			if (validationErrors.length > 0) {
+				const errorResponse = buildErrorResponse(
+					`CSV validation failed for ${validationErrors.length} row(s)`,
+					400,
+					validationErrors,
+				);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Bulk create FacilityTypes
+			const createdFacilityTypes: any[] = [];
+			const creationErrors: any[] = [];
+
+			for (let i = 0; i < facilityTypesToCreate.length; i++) {
+				const facilityTypeData = facilityTypesToCreate[i];
+
+				try {
+					const facilityType = await prisma.facilityType.create({
+						data: {
+							name: facilityTypeData.name,
+							description: facilityTypeData.description,
+							code: facilityTypeData.code,
+							spaceType: facilityTypeData.spaceType,
+							subtype: facilityTypeData.subtype,
+							organizationId: facilityTypeData.organizationId,
+						},
+					});
+
+					// Remove images field if it exists
+					const facilityTypeWithoutImages = removeImagesField(facilityType);
+					createdFacilityTypes.push(facilityTypeWithoutImages);
+
+					// Log activity for each created FacilityType
+					logActivity(req, {
+						userId: (req as any).user?.id || "unknown",
+						action: config.ACTIVITY_LOG.FACILITYTYPE.ACTIONS.CREATE_FACILITYTYPE,
+						description: `${config.ACTIVITY_LOG.FACILITYTYPE.DESCRIPTIONS.FACILITYTYPE_CREATED} via CSV: ${facilityType.name || facilityType.id}`,
+						page: {
+							url: req.originalUrl,
+							title: config.ACTIVITY_LOG.FACILITYTYPE.PAGES.FACILITYTYPE_CREATION,
+						},
+					});
+				} catch (error: any) {
+					creationErrors.push({
+						name: facilityTypeData.name,
+						error: error.message || "Unknown error",
+					});
+				}
+			}
+
+			facilityTypeLogger.info(
+				`CSV import complete: ${createdFacilityTypes.length} created, ${creationErrors.length} failed`,
+			);
+
+			// Invalidate cache
+			try {
+				await invalidateCache.byPattern("cache:facilityType:list:*");
+				facilityTypeLogger.info("FacilityType list cache invalidated after CSV import");
+			} catch (cacheError) {
+				facilityTypeLogger.warn("Failed to invalidate cache after CSV import:", cacheError);
+			}
+
+			// Return results
+			const responseData = {
+				summary: {
+					totalRows: results.length,
+					successful: createdFacilityTypes.length,
+					failed: creationErrors.length,
+				},
+				createdFacilityTypes: createdFacilityTypes,
+				...(creationErrors.length > 0 && { errors: creationErrors }),
+			};
+
+			const statusCode = creationErrors.length > 0 ? 207 : 201; // 207 Multi-Status if partial success
+			const message =
+				creationErrors.length > 0
+					? `CSV import completed with ${creationErrors.length} error(s)`
+					: "All facility types created successfully from CSV";
+
+			const successResponse = buildSuccessResponse(message, responseData, statusCode);
+			res.status(statusCode).json(successResponse);
+		} catch (error: any) {
+			facilityTypeLogger.error(`CSV upload failed: ${error.message}`, error);
+			const errorResponse = buildErrorResponse("Failed to process CSV file", 500, [
+				{ field: "file", message: error.message },
+			]);
+			res.status(500).json(errorResponse);
+		}
+	};
+
+	return { create, getAll, getById, update, remove, uploadCSV };
 };

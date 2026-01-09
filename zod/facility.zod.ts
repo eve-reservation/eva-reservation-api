@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isValidObjectId } from "mongoose";
-import { FacilityImageSchema } from "./facilityType.zod";
+import { FacilityImageSchema, SpaceTypeSchema } from "./facilityType.zod";
 import {
 	GuestRoomMetadataSchema,
 	ConferenceRoomMetadataSchema,
@@ -23,16 +23,7 @@ import {
 // ENUMS - Matching Prisma Schema
 // ============================================================================
 
-export const SpaceTypeSchema = z.enum([
-	"ROOM",
-	"COURT",
-	"DINING",
-	"FITNESS",
-	"PARKING",
-	"AMENITY",
-	"OUTDOOR",
-	"OTHER",
-]);
+// SpaceTypeSchema is now imported from facilityType.zod.ts to avoid circular dependency
 
 export const RoomSubtypeSchema = z.enum([
 	"GUEST_ROOM",

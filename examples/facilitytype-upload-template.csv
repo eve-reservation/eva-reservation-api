@@ -1,0 +1,9 @@
+name,description,code,spaceType,subtype,organizationId
+Guest Room Template,Standard guest room,GR-STD,ROOM,GUEST_ROOM,507f1f77bcf86cd799439011
+Deluxe Room Template,Deluxe guest room with premium amenities,GR-DLX,ROOM,GUEST_ROOM,507f1f77bcf86cd799439011
+Executive Suite Template,Executive suite with multiple rooms,RM-EXEC,ROOM,SUITE,507f1f77bcf86cd799439011
+Conference Room Template,Meeting and conference room,CR-CONF,ROOM,CONFERENCE_ROOM,507f1f77bcf86cd799439011
+Tennis Court Template,Standard tennis court,CT-TEN,COURT,TENNIS,507f1f77bcf86cd799439011
+Basketball Court Template,Indoor basketball court,CT-BSK,COURT,BASKETBALL,507f1f77bcf86cd799439011
+Swimming Pool Template,Olympic-size swimming pool,AM-POOL,AMENITY,SWIMMING_POOL,507f1f77bcf86cd799439011
+Parking Space Template,Covered parking space,PK-COV,PARKING,COVERED,507f1f77bcf86cd799439011

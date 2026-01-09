@@ -1099,5 +1099,293 @@ export const controller = (prisma: PrismaClient) => {
 		}
 	};
 
-	return { create, getAll, getById, getAvailable, update, remove };
+	const uploadCSV = async (req: Request, res: Response, _next: NextFunction) => {
+		try {
+			// Check if file was uploaded
+			if (!req.file) {
+				const errorResponse = buildErrorResponse("No CSV file uploaded", 400, [
+					{ field: "file", message: "Please upload a CSV file" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			facilityLogger.info(`Processing CSV file: ${req.file.originalname}`);
+
+			// Parse CSV data
+			const csvParser = await import("csv-parser");
+			const { Readable } = await import("stream");
+
+			const results: any[] = [];
+			const errors: any[] = [];
+
+			// Create a readable stream from the buffer
+			const stream = Readable.from(req.file.buffer.toString());
+
+			await new Promise((resolve, reject) => {
+				stream
+					.pipe(csvParser.default())
+					.on("data", (data) => results.push(data))
+					.on("end", resolve)
+					.on("error", reject);
+			});
+
+			facilityLogger.info(`Parsed ${results.length} rows from CSV`);
+
+			if (results.length === 0) {
+				const errorResponse = buildErrorResponse("CSV file is empty", 400, [
+					{ field: "file", message: "The uploaded CSV file contains no data" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Validate and prepare facility data
+			const facilitiesToCreate: any[] = [];
+			const validationErrors: any[] = [];
+
+			for (let i = 0; i < results.length; i++) {
+				const row = results[i];
+				const rowNumber = i + 2; // +2 because row 1 is header and arrays are 0-indexed
+
+				try {
+					// Transform CSV row to facility data
+					const facilityData: any = {
+						facilityTypeId: row.facilityTypeId?.trim(),
+						identifier: row.identifier?.trim(),
+						displayName: row.displayName?.trim() || null,
+						organizationId: row.organizationId?.trim() || null,
+						locationId: row.locationId?.trim() || null,
+						rateTypeId: row.rateTypeId?.trim() || null,
+						spaceType: row.spaceType?.trim() || undefined,
+						subtype: row.subtype?.trim() || undefined,
+						status: row.status?.trim() || "AVAILABLE",
+					};
+
+					// Parse attributes if provided
+					if (row.attributes) {
+						try {
+							facilityData.attributes = JSON.parse(row.attributes);
+						} catch (e) {
+							throw new Error(`Invalid JSON in attributes column: ${row.attributes}`);
+						}
+					}
+
+					// Parse metadata if provided
+					if (row.metadata) {
+						try {
+							facilityData.metadata = JSON.parse(row.metadata);
+						} catch (e) {
+							throw new Error(`Invalid JSON in metadata column: ${row.metadata}`);
+						}
+					}
+
+					// Validate against schema
+					const validation = CreateFacilitySchema.safeParse(facilityData);
+
+					if (!validation.success) {
+						const fieldErrors = formatZodErrors(validation.error.format());
+						validationErrors.push({
+							row: rowNumber,
+							identifier: row.identifier || "N/A",
+							errors: fieldErrors,
+						});
+						continue;
+					}
+
+					// Verify facilityType exists
+					const facilityType = await prisma.facilityType.findUnique({
+						where: { id: validation.data.facilityTypeId },
+					});
+
+					if (!facilityType) {
+						validationErrors.push({
+							row: rowNumber,
+							identifier: row.identifier || "N/A",
+							errors: [
+								{
+									field: "facilityTypeId",
+									message: `FacilityType with ID ${validation.data.facilityTypeId} not found`,
+								},
+							],
+						});
+						continue;
+					}
+
+					// Verify rateType exists if provided
+					if (validation.data.rateTypeId) {
+						const rateType = await prisma.rateType.findUnique({
+							where: { id: validation.data.rateTypeId },
+						});
+
+						if (!rateType) {
+							validationErrors.push({
+								row: rowNumber,
+								identifier: row.identifier || "N/A",
+								errors: [
+									{
+										field: "rateTypeId",
+										message: `RateType with ID ${validation.data.rateTypeId} not found`,
+									},
+								],
+							});
+							continue;
+						}
+					}
+
+					// Validate metadata if provided
+					if (validation.data.metadata !== undefined) {
+						let processedMetadata = validation.data.metadata;
+
+						// Handle metadata if it's a string (from CSV)
+						if (typeof processedMetadata === "string") {
+							try {
+								processedMetadata = JSON.parse(processedMetadata);
+							} catch (error) {
+								validationErrors.push({
+									row: rowNumber,
+									identifier: row.identifier || "N/A",
+									errors: [
+										{
+											field: "metadata",
+											message: "Failed to parse metadata JSON",
+										},
+									],
+								});
+								continue;
+							}
+						}
+
+						// Validate metadata based on facility's spaceType and subtype
+						const metadataValidation = validateFacilityMetadata(
+							processedMetadata,
+							validation.data.spaceType,
+							validation.data.subtype || null,
+						);
+
+						if (!metadataValidation.success) {
+							validationErrors.push({
+								row: rowNumber,
+								identifier: row.identifier || "N/A",
+								errors: [
+									{
+										field: "metadata",
+										message: metadataValidation.error || "Invalid metadata",
+										...(metadataValidation.requirements && {
+											requirements: metadataValidation.requirements,
+										}),
+									},
+								],
+							});
+							continue;
+						}
+
+						validation.data.metadata = processedMetadata;
+					}
+
+					facilitiesToCreate.push(validation.data);
+				} catch (error: any) {
+					validationErrors.push({
+						row: rowNumber,
+						identifier: row.identifier || "N/A",
+						errors: [{ field: "general", message: error.message }],
+					});
+				}
+			}
+
+			facilityLogger.info(
+				`Validation complete: ${facilitiesToCreate.length} valid, ${validationErrors.length} invalid`,
+			);
+
+			// If there are validation errors, return them
+			if (validationErrors.length > 0) {
+				const errorResponse = buildErrorResponse(
+					`CSV validation failed for ${validationErrors.length} row(s)`,
+					400,
+					validationErrors,
+				);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Bulk create facilities
+			const createdFacilities: any[] = [];
+			const creationErrors: any[] = [];
+
+			for (let i = 0; i < facilitiesToCreate.length; i++) {
+				const facilityData = facilitiesToCreate[i];
+
+				try {
+					const facility = await prisma.facility.create({
+						data: facilityData as any,
+					});
+					createdFacilities.push(facility);
+
+					// Log activity for each created facility
+					logActivity(req, {
+						userId: (req as any).user?.id || "unknown",
+						action: config.ACTIVITY_LOG.FACILITY.ACTIONS.CREATE_FACILITY,
+						description: `${config.ACTIVITY_LOG.FACILITY.DESCRIPTIONS.FACILITY_CREATED} via CSV: ${facility.displayName || facility.identifier || facility.id}`,
+						page: {
+							url: req.originalUrl,
+							title: config.ACTIVITY_LOG.FACILITY.PAGES.FACILITY_CREATION,
+						},
+					});
+				} catch (error: any) {
+					// Handle unique constraint violation
+					if (error.code === "P2002") {
+						creationErrors.push({
+							identifier: facilityData.identifier,
+							error: `Duplicate facility: A facility with identifier "${facilityData.identifier}" already exists for this organization`,
+						});
+					} else {
+						creationErrors.push({
+							identifier: facilityData.identifier,
+							error: error.message || "Unknown error",
+						});
+					}
+				}
+			}
+
+			facilityLogger.info(
+				`CSV import complete: ${createdFacilities.length} created, ${creationErrors.length} failed`,
+			);
+
+			// Invalidate cache
+			try {
+				await invalidateCache.byPattern("cache:facility:list:*");
+				facilityLogger.info("Facility list cache invalidated after CSV import");
+			} catch (cacheError) {
+				facilityLogger.warn("Failed to invalidate cache after CSV import:", cacheError);
+			}
+
+			// Return results
+			const responseData = {
+				summary: {
+					totalRows: results.length,
+					successful: createdFacilities.length,
+					failed: creationErrors.length,
+				},
+				createdFacilities: createdFacilities,
+				...(creationErrors.length > 0 && { errors: creationErrors }),
+			};
+
+			const statusCode = creationErrors.length > 0 ? 207 : 201; // 207 Multi-Status if partial success
+			const message =
+				creationErrors.length > 0
+					? `CSV import completed with ${creationErrors.length} error(s)`
+					: "All facilities created successfully from CSV";
+
+			const successResponse = buildSuccessResponse(message, responseData, statusCode);
+			res.status(statusCode).json(successResponse);
+		} catch (error: any) {
+			facilityLogger.error(`CSV upload failed: ${error.message}`, error);
+			const errorResponse = buildErrorResponse("Failed to process CSV file", 500, [
+				{ field: "file", message: error.message },
+			]);
+			res.status(500).json(errorResponse);
+		}
+	};
+
+	return { create, getAll, getById, getAvailable, update, remove, uploadCSV };
 };

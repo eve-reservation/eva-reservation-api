@@ -3,7 +3,7 @@ model FacilityType {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   name           String
   description    String?
-
+  code           String?
   // Classification
   spaceType      SpaceType? // Matches enum from facility.prisma
   subtype        String?    // Stores specific subtype enum value as string
