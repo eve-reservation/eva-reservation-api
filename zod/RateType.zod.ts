@@ -17,10 +17,10 @@ export type RateUnit = z.infer<typeof RateUnitEnum>;
 // RateType schema aligned to Prisma Mongo model
 export const RateTypeSchema = z.object({
 	id: z.string().refine((val) => isValidObjectId(val)),
-	name: z.string().min(1),
+	name: z.string().min(1).optional(),
 	description: z.string().optional(),
 	// Organization identifier (required in Prisma model)
-	organizationId: z.string().min(1),
+	organizationId: z.string().min(1).optional(),
 	baseRate: z.number(),
 	currency: z.string().min(1).default("PHP"),
 	rateUnit: RateUnitEnum.optional(),
@@ -31,7 +31,7 @@ export const RateTypeSchema = z.object({
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
 });
-	
+
 export type RateType = z.infer<typeof RateTypeSchema>;
 
 // Create RateType Schema (exclude id/createdAt/updatedAt)

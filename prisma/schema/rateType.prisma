@@ -10,11 +10,11 @@ enum RateUnit {
 
 model RateType {
   id              String          @id @default(auto()) @map("_id") @db.ObjectId
-  name            String
+  name            String?
   description     String?
   
   // Organization identifier
-  organizationId  String
+  organizationId  String?
   
   baseRate        Float
   currency        String          @default("PHP")

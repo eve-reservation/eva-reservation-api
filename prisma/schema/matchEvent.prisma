@@ -27,7 +27,7 @@ model MatchEvent {
   reservationId       String              @unique @db.ObjectId
   
   // Event creator (the person who created the reservation and event)
-  createdBy           String?             @db.ObjectId // User ID
+  createdBy           MatchParticipantUser?             // User details
   
   // Organization identifier
   organizationId      String?
@@ -54,7 +54,7 @@ model MatchEvent {
   ageRange            Json?               // e.g., {min: 18, max: 50}
   
   // Additional rules/notes
-  rules               String?             // Special rules or requirements
+  rules               String[]            // Special rules or requirements
   requirements        String?             // What participants need to bring/prepare
   
   // Relationships
@@ -70,6 +70,14 @@ model MatchEvent {
   @@index([isPublic, status])
 }
 
+
+type MatchParticipantUser {
+  userId String
+  firstName String?
+  lastName String?
+  email String?
+}
+
 model MatchParticipant {
   id                  String              @id @default(auto()) @map("_id") @db.ObjectId
   
@@ -78,7 +86,7 @@ model MatchParticipant {
   matchEventId        String              @db.ObjectId
   
   // User/Person joining the event
-  userId              String?             @db.ObjectId // User ID if logged in
+  user                MatchParticipantUser?
   personId            String?             @db.ObjectId // Person ID if available
   
   // Participant status
@@ -103,9 +111,9 @@ model MatchParticipant {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   
-  @@unique([matchEventId, userId]) // Prevent duplicate joins
+  // @@unique([matchEventId, user.userId]) // Prevent duplicate joins - Commented out as Prisma Mongo composite unique constraints have limitations in some versions
   @@index([matchEventId])
-  @@index([userId])
+  // @@index([user.userId]) // Index on embedded field
   @@index([status])
   @@index([matchEventId, status])
 }
