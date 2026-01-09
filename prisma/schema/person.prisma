@@ -96,6 +96,7 @@ model Person {
   metadata       Metadata?
   users          User[]
   guests         Guest[]
+  matchParticipants MatchParticipant[]
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
