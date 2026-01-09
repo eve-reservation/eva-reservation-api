@@ -153,25 +153,6 @@ export const controller = (prisma: PrismaClient) => {
 				// If using select, add relations to the select object
 				query.select = {
 					...selectedFields,
-					reservation: {
-						select: {
-							id: true,
-							facilityId: true,
-							status: true,
-							guestCount: true,
-							bookingPeriod: true,
-							confirmationCode: true,
-							facility: {
-								select: {
-									id: true,
-									identifier: true,
-									displayName: true,
-									spaceType: true,
-									subtype: true,
-								},
-							},
-						},
-					},
 					participants: {
 						select: {
 							id: true,
