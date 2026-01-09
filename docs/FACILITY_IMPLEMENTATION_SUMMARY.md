@@ -697,16 +697,42 @@ See `zod/metadata.zod.ts` for complete enum lists.
 **Issue**: Metadata doesn't match FacilityType  
 **Solution**: Ensure the metadata structure matches the FacilityType's spaceType and subtype. A GUEST_ROOM requires bedType, bedCount, maxOccupancy, but a CONFERENCE_ROOM requires seatingCapacity.
 
+## Bulk CSV Upload
+
+For creating multiple facilities at once, use the CSV upload endpoint. This is useful for importing large numbers of facilities efficiently.
+
+**Endpoint**: `POST /api/facility/upload-csv`
+
+**Example**:
+
+```bash
+curl -X POST http://localhost:3000/api/facility/upload-csv \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@facilities.csv"
+```
+
+**CSV Template**: See `examples/facility-upload-template.csv` for a sample CSV file.
+
+**Detailed Documentation**: See `docs/FACILITY_CSV_UPLOAD.md` for comprehensive CSV upload guide including:
+- CSV format and column specifications
+- Metadata formatting for CSV
+- Validation and error handling
+- Response formats
+- Best practices and troubleshooting
+
 ## Related Documentation
 
+- `docs/FACILITY_CSV_UPLOAD.md` - **NEW** Comprehensive CSV upload guide for bulk facility creation
 - `docs/FACILITY_TYPE_IMPLEMENTATION_SUMMARY.md` - FacilityType metadata implementation
 - `docs/FACILITY_TYPE_METADATA_GUIDE.md` - Detailed metadata guide for FacilityTypes
 - `docs/CURL_EXAMPLES.md` - API examples with curl commands
 - `zod/facility.zod.ts` - Facility Zod schemas and validation
 - `zod/metadata.zod.ts` - Metadata Zod schemas
+- `examples/facility-upload-template.csv` - **NEW** Sample CSV template for bulk upload
 
 ---
 
 **Implementation Date**: December 11, 2025  
+**Last Updated**: January 9, 2026  
 **Status**: ✅ Complete and Tested  
-**Version**: 1.0.0
+**Version**: 1.1.0

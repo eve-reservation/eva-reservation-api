@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cache";
-import { uploadFacilityImages } from "../../middleware/upload";
+import { uploadFacilityImages, uploadCSV } from "../../middleware/upload";
 
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -9,6 +9,7 @@ interface IController {
 	create(req: Request, res: Response, next: NextFunction): Promise<void>;
 	update(req: Request, res: Response, next: NextFunction): Promise<void>;
 	remove(req: Request, res: Response, next: NextFunction): Promise<void>;
+	uploadCSV(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 export const router = (route: Router, controller: IController): Router => {
@@ -17,6 +18,91 @@ export const router = (route: Router, controller: IController): Router => {
 
 	// Get available facilities for a time window (overlap check against reservations)
 	routes.get("/available", controller.getAvailable);
+
+	/**
+	 * @openapi
+	 * /api/facility/upload-csv:
+	 *   post:
+	 *     summary: Bulk upload facilities from CSV
+	 *     description: Upload a CSV file to create multiple facilities at once. The CSV should contain columns for facility data.
+	 *     tags: [Facility]
+	 *     security:
+	 *       - bearerAuth: []
+	 *     requestBody:
+	 *       required: true
+	 *       content:
+	 *         multipart/form-data:
+	 *           schema:
+	 *             type: object
+	 *             required:
+	 *               - file
+	 *             properties:
+	 *               file:
+	 *                 type: string
+	 *                 format: binary
+	 *                 description: CSV file containing facility data
+	 *     responses:
+	 *       201:
+	 *         description: All facilities created successfully
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               allOf:
+	 *                 - $ref: '#/components/schemas/Success'
+	 *                 - type: object
+	 *                   properties:
+	 *                     data:
+	 *                       type: object
+	 *                       properties:
+	 *                         summary:
+	 *                           type: object
+	 *                           properties:
+	 *                             totalRows:
+	 *                               type: integer
+	 *                               description: Total number of rows in CSV
+	 *                             successful:
+	 *                               type: integer
+	 *                               description: Number of facilities successfully created
+	 *                             failed:
+	 *                               type: integer
+	 *                               description: Number of facilities that failed to create
+	 *                         createdFacilities:
+	 *                           type: array
+	 *                           items:
+	 *                             $ref: '#/components/schemas/Facility'
+	 *       207:
+	 *         description: Partial success - some facilities created, some failed
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               allOf:
+	 *                 - $ref: '#/components/schemas/Success'
+	 *                 - type: object
+	 *                   properties:
+	 *                     data:
+	 *                       type: object
+	 *                       properties:
+	 *                         summary:
+	 *                           type: object
+	 *                         createdFacilities:
+	 *                           type: array
+	 *                         errors:
+	 *                           type: array
+	 *                           items:
+	 *                             type: object
+	 *                             properties:
+	 *                               identifier:
+	 *                                 type: string
+	 *                               error:
+	 *                                 type: string
+	 *       400:
+	 *         $ref: '#/components/responses/BadRequest'
+	 *       401:
+	 *         $ref: '#/components/responses/Unauthorized'
+	 *       500:
+	 *         $ref: '#/components/responses/InternalServerError'
+	 */
+	routes.post("/upload-csv", uploadCSV, controller.uploadCSV);
 
 	/**
 	 * @openapi

@@ -262,16 +262,37 @@ export const controller = (prisma: PrismaClient) => {
 			// Add relations
 			// If select is present, we must add relations to select (cannot use include)
 			if (findManyQuery.select) {
+				const existingSelect = findManyQuery.select as any;
+				const existingParticipants = existingSelect.participants;
+				const existingParticipantSelect =
+					existingParticipants && "select" in existingParticipants
+						? existingParticipants.select
+						: undefined;
+
+				const participantsField: any = {
+					...(existingParticipants || {}),
+					where: {
+						...(existingParticipants?.where || {}),
+						status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+					},
+				};
+
+				// If caller specified a nested select for participants (e.g. participants.person.personalInfo.lastName),
+				// preserve that selection instead of hard-coding person fields.
+				if (existingParticipantSelect) {
+					participantsField.select = existingParticipantSelect;
+				} else {
+					participantsField.include = {
+						...(existingParticipants?.include || {}),
+						person: true,
+					};
+				}
+
 				findManyQuery.select = {
-					...findManyQuery.select,
+					...existingSelect,
 					// Always select necessary fields for calculation if not already selected
 					maxParticipants: true,
-
-					participants: {
-						where: {
-							status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
-						},
-					},
+					participants: participantsField,
 					_count: {
 						select: {
 							participants: {
@@ -289,6 +310,9 @@ export const controller = (prisma: PrismaClient) => {
 					participants: {
 						where: {
 							status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+						},
+						include: {
+							person: true,
 						},
 					},
 					_count: {
@@ -1148,13 +1172,26 @@ export const controller = (prisma: PrismaClient) => {
 
 			const selectFields = fields ? getNestedFields(fields) : undefined;
 
-			const participants = await prisma.matchParticipant.findMany({
+			const findManyArgs: Prisma.MatchParticipantFindManyArgs = {
 				where,
-				select: selectFields,
 				orderBy: {
 					joinedAt: "asc",
 				},
-			});
+			};
+
+			// Always include related person data so callers can see group member details
+			if (selectFields) {
+				findManyArgs.select = {
+					...selectFields,
+					person: true,
+				};
+			} else {
+				findManyArgs.include = {
+					person: true,
+				};
+			}
+
+			const participants = await prisma.matchParticipant.findMany(findManyArgs);
 
 			const successResponse = buildSuccessResponse("Participants retrieved successfully", {
 				participants,
