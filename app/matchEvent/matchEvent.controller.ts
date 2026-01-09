@@ -278,32 +278,49 @@ export const controller = (prisma: PrismaClient) => {
 				"MatchEvent",
 			);
 
-			// Add relations - remove select if present to use include instead
-			// This ensures we always get relations
+			// Add relations
+			// If select is present, we must add relations to select (cannot use include)
 			if (findManyQuery.select) {
-				// If fields were specified, we'll still include relations
-				// Note: In Prisma, we can't mix select and include, so we remove select
-				// and always use include for better relation handling
-				delete findManyQuery.select;
-			}
+				findManyQuery.select = {
+					...findManyQuery.select,
+					// Always select necessary fields for calculation if not already selected
+					maxParticipants: true,
 
-			findManyQuery.include = {
-				reservation: true,
-				participants: {
-					where: {
-						status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+					participants: {
+						where: {
+							status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+						},
 					},
-				},
-				_count: {
-					select: {
-						participants: {
-							where: {
-								status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+					_count: {
+						select: {
+							participants: {
+								where: {
+									status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+								},
 							},
 						},
 					},
-				},
-			};
+				};
+			} else {
+				// Use include if no select is present
+				findManyQuery.include = {
+					reservation: true,
+					participants: {
+						where: {
+							status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+						},
+					},
+					_count: {
+						select: {
+							participants: {
+								where: {
+									status: { in: ["ACCEPTED", "CONFIRMED", "CHECKED_IN"] },
+								},
+							},
+						},
+					},
+				};
+			}
 
 			const [matchEvents, totalCount] = await Promise.all([
 				document ? prisma.matchEvent.findMany(findManyQuery) : Promise.resolve([]),
