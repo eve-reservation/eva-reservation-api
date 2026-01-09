@@ -8,6 +8,7 @@ import {
 	DiningSubtype,
 	FacilityStatus,
 	FacilityImageType,
+	RateUnit,
 } from "../../generated/prisma";
 
 const prisma = new PrismaClient();
@@ -691,9 +692,10 @@ export async function seedCustomFacilities() {
 
 	try {
 		// 1. Clean existing data (Optional: toggle this)
-		console.log("🗑️  Cleaning up existing facilities and types...");
+		console.log("🗑️  Cleaning up existing facilities, types, and rates...");
 		await prisma.facility.deleteMany({});
 		await prisma.facilityType.deleteMany({});
+		await prisma.rateType.deleteMany({});
 
 		// 2. Insert Data
 		for (const cat of categories) {
@@ -713,6 +715,25 @@ export async function seedCustomFacilities() {
 
 				// Create Facilities
 				for (const facility of typeData.facilities) {
+					// Determine RateUnit
+					let rateUnit: RateUnit = RateUnit.FLAT_RATE;
+					const pUnit = facility.metadata?.priceUnit?.toLowerCase();
+
+					if (pUnit === "hour") rateUnit = RateUnit.HOURLY;
+					else if (pUnit === "day") rateUnit = RateUnit.DAILY;
+					else if (["visit", "game", "session"].includes(pUnit))
+						rateUnit = RateUnit.PER_SESSION;
+
+					// Create RateType
+					const rateType = await prisma.rateType.create({
+						data: {
+							name: facility.identifier,
+							baseRate: Number(facility.metadata?.price) || 0,
+							rateUnit: rateUnit,
+							organizationId: defaultOrgId,
+						},
+					});
+
 					await prisma.facility.create({
 						data: {
 							facilityTypeId: fType.id,
@@ -723,6 +744,7 @@ export async function seedCustomFacilities() {
 							subtype: typeData.subtype, // Copy subtype to facility as per schema pattern
 							metadata: facility.metadata || {},
 							images: facility.images || [],
+							rateTypeId: rateType.id,
 						},
 					});
 				}

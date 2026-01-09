@@ -355,6 +355,7 @@ export const controller = (prisma: PrismaClient) => {
 			findManyQuery.include = {
 				location: true,
 				facilityType: true,
+				rateType: true
 			};
 
 			const [facilities, total] = await Promise.all([
