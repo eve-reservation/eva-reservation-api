@@ -57,6 +57,7 @@ export async function seedCustomFacilities() {
 							identifier: `TENNIS-IN-${i + 1}`,
 							displayName: `Covered Tennis Court ${i + 1}`,
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: `Professional indoor tennis court ${i + 1} with high-quality surface.`,
 								price: 300,
 								priceUnit: "hour",
@@ -77,6 +78,7 @@ export async function seedCustomFacilities() {
 							identifier: `TENNIS-OUT-${i + 1}`,
 							displayName: `Open-air Tennis Court ${i + 1}`,
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: `Standard outdoor tennis court ${i + 1}.`,
 								price: 200,
 								priceUnit: "hour",
@@ -98,6 +100,7 @@ export async function seedCustomFacilities() {
 						identifier: `BADMINTON-${i + 1}`,
 						displayName: `Badminton Court ${i + 1}`,
 						metadata: {
+							location: "Quezon City Sports Club",
 							description: `Professional badminton court ${i + 1} with non-slip flooring.`,
 							price: 150,
 							priceUnit: "hour",
@@ -116,6 +119,7 @@ export async function seedCustomFacilities() {
 							identifier: "POOL-MAIN",
 							displayName: "Competition Pool (25m)",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "25-meter lap pool for adults and competitions.",
 								price: 200,
 								priceUnit: "visit",
@@ -133,6 +137,7 @@ export async function seedCustomFacilities() {
 							identifier: "POOL-KID-1",
 							displayName: "Kiddie Pool 1",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Shallow pool designed for children.",
 								price: 100,
 								priceUnit: "visit",
@@ -145,6 +150,7 @@ export async function seedCustomFacilities() {
 							identifier: "POOL-KID-2",
 							displayName: "Kiddie Pool 2",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Safe and fun water play area for toddlers.",
 								price: 100,
 								priceUnit: "visit",
@@ -163,6 +169,7 @@ export async function seedCustomFacilities() {
 						identifier: `BOWLING-${i + 1}`,
 						displayName: `Bowling Lane ${i + 1}`,
 						metadata: {
+							location: "Quezon City Sports Club",
 							description: "Professional ten-pin bowling lane.",
 							price: 180,
 							priceUnit: "game",
@@ -185,6 +192,7 @@ export async function seedCustomFacilities() {
 						identifier: `PICKLEBALL-${i + 1}`,
 						displayName: `Pickleball Court ${i + 1}`,
 						metadata: {
+							location: "Quezon City Sports Club",
 							description: "Outdoor pickleball court.",
 							price: 150,
 							priceUnit: "hour",
@@ -203,6 +211,7 @@ export async function seedCustomFacilities() {
 							identifier: "COMBAT-1",
 							displayName: "Elorde Muay Thai and Boxing",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Dedicated combat sports training area.",
 								price: 350,
 								priceUnit: "session",
@@ -228,6 +237,7 @@ export async function seedCustomFacilities() {
 							identifier: "BBALL-1",
 							displayName: "Covered Basketball Court",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Full-sized hardwood basketball court.",
 								price: 500,
 								priceUnit: "hour",
@@ -252,6 +262,7 @@ export async function seedCustomFacilities() {
 							identifier: "SQUASH-1",
 							displayName: "Squash Court 1",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Standard squash court with glass back wall.",
 								price: 250,
 								priceUnit: "hour",
@@ -264,6 +275,7 @@ export async function seedCustomFacilities() {
 							identifier: "SQUASH-2",
 							displayName: "Squash Court 2",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Standard squash court.",
 								price: 250,
 								priceUnit: "hour",
@@ -283,6 +295,7 @@ export async function seedCustomFacilities() {
 							identifier: "BILLIARD-HALL",
 							displayName: "Billiard Hall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Spacious hall with professional billiard tables.",
 								price: 120,
 								priceUnit: "hour",
@@ -308,6 +321,7 @@ export async function seedCustomFacilities() {
 							identifier: "PINGPONG-AREA",
 							displayName: "Table Tennis Area",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Area dedicated to table tennis.",
 								price: 100,
 								priceUnit: "hour",
@@ -327,6 +341,7 @@ export async function seedCustomFacilities() {
 							identifier: "DANCE-STUDIO",
 							displayName: "Dance Studio",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Spacious studio with mirrors and sound system.",
 								price: 600,
 								priceUnit: "hour",
@@ -356,6 +371,7 @@ export async function seedCustomFacilities() {
 							identifier: "GYM-MAIN",
 							displayName: "Main Gym",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "State-of-the-art fitness center.",
 								price: 250,
 								priceUnit: "visit",
@@ -373,6 +389,7 @@ export async function seedCustomFacilities() {
 							identifier: "SAUNA-MAIN",
 							displayName: "Sauna",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Relaxing dry sauna room.",
 								price: 150,
 								priceUnit: "session",
@@ -396,6 +413,7 @@ export async function seedCustomFacilities() {
 							identifier: "MASSAGE-ROOM",
 							displayName: "Massage Room",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Private massage therapy room.",
 								price: 600,
 								priceUnit: "session",
@@ -413,6 +431,7 @@ export async function seedCustomFacilities() {
 							identifier: "REFLEXOLOGY",
 							displayName: "Reflexology Clinic",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Clinic specializing in reflexology treatments.",
 								price: 500,
 								priceUnit: "session",
@@ -432,6 +451,7 @@ export async function seedCustomFacilities() {
 							identifier: "BARBER",
 							displayName: "Barber Shop",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Classic barber shop for men.",
 								price: 0,
 								priceUnit: "service",
@@ -444,6 +464,7 @@ export async function seedCustomFacilities() {
 							identifier: "SALON",
 							displayName: "Beauty Salon",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Full-service beauty salon.",
 								price: 0,
 								priceUnit: "service",
@@ -473,6 +494,7 @@ export async function seedCustomFacilities() {
 							identifier: "HALL-QUEZON",
 							displayName: "Quezon Hall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Grand ballroom for large events and weddings.",
 								price: 20000,
 								priceUnit: "day",
@@ -492,6 +514,7 @@ export async function seedCustomFacilities() {
 							identifier: "HALL-PUGAD",
 							displayName: "Pugad Lawin Hall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Medium-sized function hall.",
 								price: 10000,
 								priceUnit: "day",
@@ -509,6 +532,7 @@ export async function seedCustomFacilities() {
 							identifier: "HALL-BAGUMBAYAN",
 							displayName: "Bagumbayan Hall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Elegant hall for medium gatherings.",
 								price: 8000,
 								priceUnit: "day",
@@ -532,6 +556,7 @@ export async function seedCustomFacilities() {
 							identifier: "FUNC-1",
 							displayName: "Small Function Room 1",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Intimate room for small meetings or gatherings.",
 								price: 3000,
 								priceUnit: "4 hours",
@@ -544,6 +569,7 @@ export async function seedCustomFacilities() {
 							identifier: "FUNC-2",
 							displayName: "Small Function Room 2",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Standard meeting room.",
 								price: 3000,
 								priceUnit: "4 hours",
@@ -563,6 +589,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-BANQUET",
 							displayName: "Main Banquet Hall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Spacious banquet hall for dining events.",
 								price: 0,
 								priceUnit: "order",
@@ -575,6 +602,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-DAILY",
 							displayName: "Daily Dining Room",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Casual dining area for daily meals.",
 								price: 0,
 								priceUnit: "order",
@@ -587,6 +615,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-COFFEE",
 							displayName: "Coffee Shop",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Relaxed coffee shop serving brews and pastries.",
 								price: 0,
 								priceUnit: "order",
@@ -599,6 +628,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-BAR",
 							displayName: "Bar and Lounge",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Evening lounge and bar with drinks and music.",
 								price: 0,
 								priceUnit: "order",
@@ -611,6 +641,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-SHABU",
 							displayName: "Shabu-shabu Restaurant",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Specialty Shabu-shabu hotpot restaurant.",
 								price: 0,
 								priceUnit: "order",
@@ -623,6 +654,7 @@ export async function seedCustomFacilities() {
 							identifier: "DINE-POTATO",
 							displayName: "Potato Corner Stall",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Famous flavored fries stall.",
 								price: 0,
 								priceUnit: "order",
@@ -642,6 +674,7 @@ export async function seedCustomFacilities() {
 							identifier: "FOOD-FAMILY",
 							displayName: "Family Meals Pickup",
 							metadata: {
+								location: "Quezon City Sports Club",
 								description: "Counter for picking up family sized meals.",
 								price: 0,
 								priceUnit: "order",
