@@ -87,6 +87,9 @@ model MatchParticipant {
   
   // User/Person joining the event
   user                MatchParticipantUser?
+
+  // Person relation (optional)
+  person              Person?             @relation(fields: [personId], references: [id])
   personId            String?             @db.ObjectId // Person ID if available
   
   // Participant status
