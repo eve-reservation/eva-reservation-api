@@ -3,8 +3,19 @@ import { z } from "zod";
 export const ObjectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId format");
 
 // ============================================================================
-// ENUMS - Note: SpaceType and Subtype enums moved to facility.zod.ts
+// ENUMS
 // ============================================================================
+
+export const SpaceTypeSchema = z.enum([
+	"ROOM",
+	"COURT",
+	"DINING",
+	"FITNESS",
+	"PARKING",
+	"AMENITY",
+	"OUTDOOR",
+	"OTHER",
+]);
 
 // ============================================================================
 // FACILITY IMAGE TYPE ENUM & SCHEMA
@@ -52,8 +63,11 @@ const preprocessFacilityTypeData = z.preprocess(
 			.string()
 			.min(1, "Name is required and must be a non-empty string")
 			.max(255, "Name must be at most 255 characters"),
+		description: z.string().optional(),
+		code: z.string().optional(),
+		spaceType: SpaceTypeSchema.optional(),
+		subtype: z.string().optional(),
 		organizationId: ObjectIdSchema.optional(),
-		rateTypeId: ObjectIdSchema.optional(),
 	}),
 );
 
@@ -74,6 +88,10 @@ export const UpdateFacilityTypeSchema = z.preprocess(
 				.min(1, "Name is required and must be a non-empty string")
 				.max(255, "Name must be at most 255 characters")
 				.optional(),
+			description: z.string().optional(),
+			code: z.string().optional(),
+			spaceType: SpaceTypeSchema.optional(),
+			subtype: z.string().optional(),
 			organizationId: ObjectIdSchema.optional(),
 		})
 		.partial(),
@@ -97,6 +115,7 @@ export const FacilityTypeQuerySchema = z.object({
 // EXPORT TYPES
 // ============================================================================
 
+export type SpaceType = z.infer<typeof SpaceTypeSchema>;
 export type FacilityImageType = z.infer<typeof FacilityImageTypeSchema>;
 export type FacilityImage = z.infer<typeof FacilityImageSchema>;
 

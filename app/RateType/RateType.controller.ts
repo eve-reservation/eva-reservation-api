@@ -393,5 +393,187 @@ export const controller = (prisma: PrismaClient) => {
 		}
 	};
 
-	return { create, getAll, getById, update, remove };
+	const uploadCSV = async (req: Request, res: Response, _next: NextFunction) => {
+		try {
+			// Check if file was uploaded
+			if (!req.file) {
+				const errorResponse = buildErrorResponse("No CSV file uploaded", 400, [
+					{ field: "file", message: "Please upload a CSV file" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			RateTypeLogger.info(`Processing CSV file: ${req.file.originalname}`);
+
+			// Parse CSV data
+			const csvParser = await import("csv-parser");
+			const { Readable } = await import("stream");
+
+			const results: any[] = [];
+
+			// Create a readable stream from the buffer
+			const stream = Readable.from(req.file.buffer.toString());
+
+			await new Promise((resolve, reject) => {
+				stream
+					.pipe(csvParser.default())
+					.on("data", (data) => results.push(data))
+					.on("end", resolve)
+					.on("error", reject);
+			});
+
+			RateTypeLogger.info(`Parsed ${results.length} rows from CSV`);
+
+			if (results.length === 0) {
+				const errorResponse = buildErrorResponse("CSV file is empty", 400, [
+					{ field: "file", message: "The uploaded CSV file contains no data" },
+				]);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Validate and prepare RateType data
+			const rateTypesToCreate: any[] = [];
+			const validationErrors: any[] = [];
+
+			for (let i = 0; i < results.length; i++) {
+				const row = results[i];
+				const rowNumber = i + 2; // +2 because row 1 is header and arrays are 0-indexed
+
+				try {
+					// Transform CSV row to RateType data
+					const rateTypeData: any = {
+						name: row.name?.trim(),
+						description: row.description?.trim() || undefined,
+						organizationId: row.organizationId?.trim(),
+						baseRate: parseFloat(row.baseRate),
+						currency: row.currency?.trim() || "PHP",
+						rateUnit: row.rateUnit?.trim() || undefined,
+						serviceFee: row.serviceFee ? parseFloat(row.serviceFee) : undefined,
+						tax: row.tax ? parseFloat(row.tax) : undefined,
+						isActive: row.isActive ? row.isActive.toLowerCase() === "true" : true,
+					};
+
+					// Parse adjustments if provided
+					if (row.adjustments) {
+						try {
+							rateTypeData.adjustments = JSON.parse(row.adjustments);
+						} catch (e) {
+							throw new Error(
+								`Invalid JSON in adjustments column: ${row.adjustments}`,
+							);
+						}
+					}
+
+					// Validate against schema
+					const validation = CreateRateTypeSchema.safeParse(rateTypeData);
+
+					if (!validation.success) {
+						const fieldErrors = formatZodErrors(validation.error.format());
+						validationErrors.push({
+							row: rowNumber,
+							name: row.name || "N/A",
+							errors: fieldErrors,
+						});
+						continue;
+					}
+
+					rateTypesToCreate.push(validation.data);
+				} catch (error: any) {
+					validationErrors.push({
+						row: rowNumber,
+						name: row.name || "N/A",
+						errors: [{ field: "general", message: error.message }],
+					});
+				}
+			}
+
+			RateTypeLogger.info(
+				`Validation complete: ${rateTypesToCreate.length} valid, ${validationErrors.length} invalid`,
+			);
+
+			// If there are validation errors, return them
+			if (validationErrors.length > 0) {
+				const errorResponse = buildErrorResponse(
+					`CSV validation failed for ${validationErrors.length} row(s)`,
+					400,
+					validationErrors,
+				);
+				res.status(400).json(errorResponse);
+				return;
+			}
+
+			// Bulk create RateTypes
+			const createdRateTypes: any[] = [];
+			const creationErrors: any[] = [];
+
+			for (let i = 0; i < rateTypesToCreate.length; i++) {
+				const rateTypeData = rateTypesToCreate[i];
+
+				try {
+					const rateType = await prisma.rateType.create({
+						data: rateTypeData,
+					});
+					createdRateTypes.push(rateType);
+
+					// Log activity for each created RateType
+					logActivity(req, {
+						userId: (req as any).user?.id || "unknown",
+						action: config.ACTIVITY_LOG.RATETYPE.ACTIONS.CREATE_RATETYPE,
+						description: `${config.ACTIVITY_LOG.RATETYPE.DESCRIPTIONS.RATETYPE_CREATED} via CSV: ${rateType.name || rateType.id}`,
+						page: {
+							url: req.originalUrl,
+							title: config.ACTIVITY_LOG.RATETYPE.PAGES.RATETYPE_CREATION,
+						},
+					});
+				} catch (error: any) {
+					creationErrors.push({
+						name: rateTypeData.name,
+						error: error.message || "Unknown error",
+					});
+				}
+			}
+
+			RateTypeLogger.info(
+				`CSV import complete: ${createdRateTypes.length} created, ${creationErrors.length} failed`,
+			);
+
+			// Invalidate cache
+			try {
+				await invalidateCache.byPattern("cache:RateType:list:*");
+				RateTypeLogger.info("RateType list cache invalidated after CSV import");
+			} catch (cacheError) {
+				RateTypeLogger.warn("Failed to invalidate cache after CSV import:", cacheError);
+			}
+
+			// Return results
+			const responseData = {
+				summary: {
+					totalRows: results.length,
+					successful: createdRateTypes.length,
+					failed: creationErrors.length,
+				},
+				createdRateTypes: createdRateTypes,
+				...(creationErrors.length > 0 && { errors: creationErrors }),
+			};
+
+			const statusCode = creationErrors.length > 0 ? 207 : 201; // 207 Multi-Status if partial success
+			const message =
+				creationErrors.length > 0
+					? `CSV import completed with ${creationErrors.length} error(s)`
+					: "All rate types created successfully from CSV";
+
+			const successResponse = buildSuccessResponse(message, responseData, statusCode);
+			res.status(statusCode).json(successResponse);
+		} catch (error: any) {
+			RateTypeLogger.error(`CSV upload failed: ${error.message}`, error);
+			const errorResponse = buildErrorResponse("Failed to process CSV file", 500, [
+				{ field: "file", message: error.message },
+			]);
+			res.status(500).json(errorResponse);
+		}
+	};
+
+	return { create, getAll, getById, update, remove, uploadCSV };
 };

@@ -1,0 +1,8 @@
+name,description,organizationId,baseRate,currency,rateUnit,serviceFee,tax,adjustments,isActive
+Hourly Rate,Standard hourly rate,org-001,100.00,PHP,HOURLY,10.00,12.00,,true
+Daily Rate,Standard daily rate,org-001,800.00,PHP,DAILY,80.00,12.00,,true
+Weekly Rate,Weekly package rate,org-001,5000.00,PHP,WEEKLY,500.00,12.00,,true
+Monthly Rate,Monthly membership,org-001,20000.00,PHP,MONTHLY,0,12.00,,true
+Session Pass,Single session pass,org-001,500.00,PHP,PER_SESSION,50.00,12.00,,true
+Per Person Rate,Group per person rate,org-001,1200.00,PHP,PER_PERSON,0,12.00,,true
+Flat Fee,One-time flat fee,org-001,3000.00,PHP,FLAT_RATE,300.00,12.00,,true

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { cache, cacheShort, cacheMedium, cacheUser } from "../../middleware/cache";
+import { uploadCSV } from "../../middleware/upload";
 
 interface IController {
 	getById(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -7,6 +8,7 @@ interface IController {
 	create(req: Request, res: Response, next: NextFunction): Promise<void>;
 	update(req: Request, res: Response, next: NextFunction): Promise<void>;
 	remove(req: Request, res: Response, next: NextFunction): Promise<void>;
+	uploadCSV(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 export const router = (route: Router, controller: IController): Router => {
@@ -219,6 +221,42 @@ export const router = (route: Router, controller: IController): Router => {
 		}),
 		controller.getAll,
 	);
+
+	/**
+	 * @openapi
+	 * /api/RateType/upload-csv:
+	 *   post:
+	 *     summary: Bulk upload rate types from CSV
+	 *     description: Upload a CSV file to create multiple rate types at once
+	 *     tags: [RateType]
+	 *     security:
+	 *       - bearerAuth: []
+	 *     requestBody:
+	 *       required: true
+	 *       content:
+	 *         multipart/form-data:
+	 *           schema:
+	 *             type: object
+	 *             required:
+	 *               - file
+	 *             properties:
+	 *               file:
+	 *                 type: string
+	 *                 format: binary
+	 *                 description: CSV file containing rate type data
+	 *     responses:
+	 *       201:
+	 *         description: All rate types created successfully
+	 *       207:
+	 *         description: Partial success - some rate types created, some failed
+	 *       400:
+	 *         $ref: '#/components/responses/BadRequest'
+	 *       401:
+	 *         $ref: '#/components/responses/Unauthorized'
+	 *       500:
+	 *         $ref: '#/components/responses/InternalServerError'
+	 */
+	routes.post("/upload-csv", uploadCSV, controller.uploadCSV);
 
 	/**
 	 * @openapi
