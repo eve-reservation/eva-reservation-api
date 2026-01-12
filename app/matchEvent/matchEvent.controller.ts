@@ -1,6 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { z } from "zod";
-import { isValidObjectId } from "mongoose";
 import { PrismaClient, Prisma } from "../../generated/prisma";
 import { getLogger } from "../../helper/logger";
 import { transformFormDataToObject } from "../../helper/transformObject";
@@ -8,7 +6,6 @@ import { validateQueryParams } from "../../helper/validation-helper";
 import {
 	buildFilterConditions,
 	buildFindManyQuery,
-	buildSearchConditions,
 	getNestedFields,
 } from "../../helper/query-builder";
 import { buildSuccessResponse, buildPagination } from "../../helper/success-handler";
@@ -17,13 +14,9 @@ import { buildErrorResponse, formatZodErrors } from "../../helper/error-handler"
 import {
 	CreateMatchEventSchema,
 	UpdateMatchEventSchema,
-	CreateMatchParticipantSchema,
 	UpdateMatchParticipantSchema,
 	JoinMatchEventSchema,
 } from "../../zod/matchEvent.zod";
-import { logActivity } from "../../utils/activityLogger";
-import { logAudit } from "../../utils/auditLogger";
-import { config } from "../../config/constant";
 import { invalidateCache } from "../../middleware/cache";
 import { AuthRequest } from "../../middleware/verifyToken";
 
@@ -153,14 +146,7 @@ export const controller = (prisma: PrismaClient) => {
 				// If using select, add relations to the select object
 				query.select = {
 					...selectedFields,
-					participants: {
-						select: {
-							id: true,
-							user: true,
-							status: true,
-							joinedAt: true,
-						},
-					},
+					participants: true,
 				};
 			} else {
 				// If not using select, use include
